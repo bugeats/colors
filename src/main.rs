@@ -3,7 +3,7 @@ mod oklch;
 use oklch::Oklch;
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 fn palette() -> Vec<(&'static str, Oklch)> {
     let bg = Oklch::new(0.249193, 0.004805, 67.6049);
@@ -141,6 +141,7 @@ fn print_json(palette: &[(&str, Oklch)]) {
 }
 
 fn print_table(palette: &[(&str, Oklch)]) {
+    const BLOCK: char = '\u{2588}';
     let max_name = palette.iter().map(|(n, _)| n.len()).max().unwrap_or(0);
 
     for (name, color) in palette {
@@ -148,7 +149,7 @@ fn print_table(palette: &[(&str, Oklch)]) {
         let hex = color.to_hex();
 
         println!(
-            "{:<width$}  \x1b[38;2;{};{};{}m\u{2588}\u{2588}\x1b[0m {}",
+            "{:<width$}  \x1b[38;2;{};{};{}m{BLOCK}{BLOCK}{BLOCK}{BLOCK}\x1b[0m {}",
             name,
             r,
             g,
