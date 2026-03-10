@@ -25,8 +25,8 @@ fn palette() -> Vec<(&'static str, Oklch)> {
     let ansi_red = Oklch::new(fg.dim().l, 0.09, 40.0);
     let ansi_yellow = ansi_red.rotate(60.0);
     let ansi_green = ansi_red.rotate(120.0);
-    let ansi_blue = ansi_red.rotate(180.0);
-    let ansi_cyan = ansi_blue.rotate(-30.0);
+    let ansi_blue = ansi_red.rotate(190.0).ansi_desat();
+    let ansi_cyan = ansi_blue.rotate(-33.0).ansi_desat();
     let ansi_magenta = ansi_red.rotate(-20.0);
     let ansi_white = fg;
     let ansi_black = bg;

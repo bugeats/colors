@@ -33,6 +33,10 @@ impl Oklch {
             .with_chroma(self.c + 0.02)
     }
 
+    pub fn ansi_desat(self) -> Self {
+        self.with_chroma(self.c - 0.03)
+    }
+
     pub fn faint(self, bg_l: f64) -> Self {
         self.with_lightness(bg_l + 0.078)
     }
