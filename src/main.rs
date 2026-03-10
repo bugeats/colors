@@ -8,12 +8,13 @@ use serde_json::{Map, Value, json};
 fn palette() -> Vec<(&'static str, Oklch)> {
     let bg = Oklch::new(0.249193, 0.004805, 67.6049);
     let fg = Oklch::new(0.794120, 0.023073, 74.0457);
-    let red = Oklch::new(0.805840, 0.102584, 21.7726);
-    let yellow = Oklch::new(0.792200, 0.075818, 94.0564);
-    let orange = Oklch::new(0.798851, 0.076616, 59.1782);
-    let green = Oklch::new(0.783678, 0.074871, 152.9690);
-    let blue = Oklch::new(0.795322, 0.071877, 275.8353);
-    let magenta = Oklch::new(0.802758, 0.090264, 320.1364);
+
+    let red = Oklch::new(0.805840, 0.102584, 38.0);
+    let yellow = red.with_hue(94.0564);
+    let orange = red.with_hue(59.1782);
+    let green = red.with_hue(152.9690);
+    let blue = red.with_hue(275.8353);
+    let magenta = red.with_hue(320.1364);
     let brown = Oklch::new(0.794724, 0.057422, 77.4583);
 
     let err_red = Oklch::new(0.802315, 0.091671, 27.5819);
@@ -21,24 +22,14 @@ fn palette() -> Vec<(&'static str, Oklch)> {
     let info_seafoam = Oklch::new(0.784713, 0.067461, 163.5503);
     let hint_cyan = Oklch::new(0.783736, 0.066794, 172.4786);
 
-    // Desaturated, slightly hue-shifted variants for terminal ANSI colors
-    let ansi_black = Oklch::new(0.379031, 0.005196, 91.5253);
-    let ansi_red = Oklch::new(0.768060, 0.083875, 31.1293);
-    let ansi_green = Oklch::new(0.751049, 0.057458, 160.1909);
-    let ansi_yellow = Oklch::new(0.757027, 0.062501, 101.5023);
-    let ansi_blue = Oklch::new(0.762743, 0.059775, 285.9812);
-    let ansi_cyan = Oklch::new(0.749799, 0.070587, 198.0765);
-    let ansi_magenta = Oklch::new(0.766598, 0.074011, 327.0291);
-    let ansi_white = Oklch::new(0.758464, 0.010864, 81.7919);
-
-    // High-lightness, low-chroma variants for ANSI bright colors
-    let bright_black = Oklch::new(0.896388, 0.044675, 83.9000);
-    let bright_red = Oklch::new(0.901970, 0.046140, 29.6410);
-    let bright_green = Oklch::new(0.889740, 0.057892, 159.0431);
-    let bright_yellow = Oklch::new(0.895544, 0.046603, 100.5593);
-    let bright_blue = Oklch::new(0.899768, 0.046324, 286.7777);
-    let bright_cyan = Oklch::new(0.889396, 0.053221, 197.7065);
-    let bright_magenta = Oklch::new(0.903967, 0.055747, 326.9639);
+    let ansi_red = Oklch::new(fg.dim().l, 0.09, 40.0);
+    let ansi_yellow = ansi_red.rotate(60.0);
+    let ansi_green = ansi_red.rotate(120.0);
+    let ansi_blue = ansi_red.rotate(180.0);
+    let ansi_cyan = ansi_blue.rotate(-30.0);
+    let ansi_magenta = ansi_red.rotate(-20.0);
+    let ansi_white = fg;
+    let ansi_black = bg;
 
     // Hue-rotated alternates for secondary roles
     let alt_green = Oklch::new(0.788608, 0.070668, 126.8088);
@@ -48,45 +39,48 @@ fn palette() -> Vec<(&'static str, Oklch)> {
 
     let cursor_bg = Oklch::new(0.795777, 0.099834, 273.8793);
 
+    let punc = fg.dim().dim().with_chroma(0.14).with_hue(33.0);
+
     vec![
+        ("COLOR_ANSI_BLACK_DIM", ansi_black.ansi_dim()),
         ("COLOR_ANSI_BLACK", ansi_black),
-        ("COLOR_ANSI_BLACK_DIM", ansi_black.dim()),
-        ("COLOR_ANSI_BLACK_LIGHT", bright_black),
-        ("COLOR_ANSI_BLUE", ansi_blue.dim()),
-        ("COLOR_ANSI_BLUE_DIM", ansi_blue.dim().dim()),
-        ("COLOR_ANSI_BLUE_LIGHT", bright_blue),
-        ("COLOR_ANSI_CYAN", ansi_cyan),
-        ("COLOR_ANSI_CYAN_DIM", ansi_cyan.dim()),
-        ("COLOR_ANSI_CYAN_LIGHT", bright_cyan),
-        ("COLOR_ANSI_GREEN", ansi_green),
-        ("COLOR_ANSI_GREEN_DIM", ansi_green.dim()),
-        ("COLOR_ANSI_GREEN_LIGHT", bright_green),
-        ("COLOR_ANSI_MAGENTA", ansi_magenta),
-        ("COLOR_ANSI_MAGENTA_DIM", ansi_magenta.dim()),
-        ("COLOR_ANSI_MAGENTA_LIGHT", bright_magenta),
-        ("COLOR_ANSI_RED", ansi_red),
-        ("COLOR_ANSI_RED_DIM", ansi_red.dim()),
-        ("COLOR_ANSI_RED_LIGHT", bright_red),
+        ("COLOR_ANSI_BLACK_LIGHT", ansi_black.ansi_bright()),
+        ("COLOR_ANSI_WHITE_DIM", ansi_white.ansi_dim()),
         ("COLOR_ANSI_WHITE", ansi_white),
-        ("COLOR_ANSI_WHITE_DIM", ansi_white.dim()),
-        ("COLOR_ANSI_WHITE_LIGHT", bright_black),
+        ("COLOR_ANSI_WHITE_LIGHT", ansi_white.ansi_bright()),
+        ("COLOR_ANSI_RED_DIM", ansi_red.ansi_dim()),
+        ("COLOR_ANSI_RED", ansi_red),
+        ("COLOR_ANSI_RED_LIGHT", ansi_red.ansi_bright()),
+        ("COLOR_ANSI_YELLOW_DIM", ansi_yellow.ansi_dim()),
         ("COLOR_ANSI_YELLOW", ansi_yellow),
-        ("COLOR_ANSI_YELLOW_DIM", ansi_yellow.dim()),
-        ("COLOR_ANSI_YELLOW_LIGHT", bright_yellow),
+        ("COLOR_ANSI_YELLOW_LIGHT", ansi_yellow.ansi_bright()),
+        ("COLOR_ANSI_GREEN_DIM", ansi_green.ansi_dim()),
+        ("COLOR_ANSI_GREEN", ansi_green),
+        ("COLOR_ANSI_GREEN_LIGHT", ansi_green.ansi_bright()),
+        ("COLOR_ANSI_CYAN_DIM", ansi_cyan.ansi_dim()),
+        ("COLOR_ANSI_CYAN", ansi_cyan),
+        ("COLOR_ANSI_CYAN_LIGHT", ansi_cyan.ansi_bright()),
+        ("COLOR_ANSI_BLUE_DIM", ansi_blue.ansi_dim()),
+        ("COLOR_ANSI_BLUE", ansi_blue),
+        ("COLOR_ANSI_BLUE_LIGHT", ansi_blue.ansi_bright()),
+        ("COLOR_ANSI_MAGENTA_DIM", ansi_magenta.ansi_dim()),
+        ("COLOR_ANSI_MAGENTA", ansi_magenta),
+        ("COLOR_ANSI_MAGENTA_LIGHT", ansi_magenta.ansi_bright()),
+        //
+        ("COLOR_NORMAL_BG", bg),
+        ("COLOR_NORMAL_BG_ALT", bg.veryfaint(bg.l)),
+        ("COLOR_NORMAL_FG", fg),
+        ("COLOR_NORMAL_FG_ALT", fg.fgdim(fg.l)),
         ("COLOR_COMMENT_FG", fg.dim()),
+        ("COLOR_PUNCTUATION_FG", punc),
+        ("COLOR_PUNCTUATION_ACTIVE_FG", punc.ansi_bright()),
+        ("COLOR_PUNCTUATION_ACTIVE_BG", bg.interp(brown, 4.0 / 12.0)),
+        ("COLOR_PUNCTUATION_FAINT_BG", punc.faint(bg.l)),
         ("COLOR_CURSOR_BG", cursor_bg),
         ("COLOR_ERROR_BG", magenta.veryfaint(bg.l)),
         ("COLOR_ERROR_FG", magenta),
         ("COLOR_KEYWORD_FG_ALT", alt_green),
         ("COLOR_KEYWORD_FG", green),
-        ("COLOR_NORMAL_BG", bg),
-        ("COLOR_NORMAL_BG_ALT", bg.veryfaint(bg.l)),
-        ("COLOR_NORMAL_FG_ALT", fg.fgdim(fg.l)),
-        ("COLOR_NORMAL_FG", fg),
-        ("COLOR_PUNCTUATION_ACTIVE_BG", bg.interp(brown, 4.0 / 12.0)),
-        ("COLOR_PUNCTUATION_ACTIVE_FG", red),
-        ("COLOR_PUNCTUATION_FAINT_BG", red.faint(bg.l)),
-        ("COLOR_PUNCTUATION_FG", red.dim()),
         ("COLOR_SELECTION_BG_ALT", alt_blue.faint(bg.l)),
         ("COLOR_SELECTION_BG", blue.faint(bg.l)),
         ("COLOR_STRING_FG_ALT", orange),

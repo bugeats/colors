@@ -23,6 +23,16 @@ impl Oklch {
         self.with_lightness(self.l - 0.199)
     }
 
+    pub fn ansi_dim(self) -> Self {
+        self.with_lightness(self.l - 0.12)
+            .with_chroma(self.c - 0.032)
+    }
+
+    pub fn ansi_bright(self) -> Self {
+        self.with_lightness(self.l + 0.16)
+            .with_chroma(self.c + 0.02)
+    }
+
     pub fn faint(self, bg_l: f64) -> Self {
         self.with_lightness(bg_l + 0.078)
     }
@@ -55,8 +65,21 @@ impl Oklch {
     }
 
     // Chroma scales proportionally with lightness to stay within sRGB gamut
-    fn with_lightness(self, target_l: f64) -> Self {
+    pub fn with_lightness(self, target_l: f64) -> Self {
         Self::new(target_l, self.c * target_l / self.l, self.h)
+    }
+
+    pub fn with_hue(&self, target_h: f64) -> Self {
+        Self::new(self.l, self.c, target_h)
+    }
+
+    pub fn with_chroma(&self, target_c: f64) -> Self {
+        Self::new(self.l, target_c, self.h)
+    }
+
+    pub fn rotate(&self, delta_h: f64) -> Self {
+        let h = (self.h + delta_h) % 360.0;
+        Self::new(self.l, self.c, h)
     }
 
     fn to_ab(self) -> (f64, f64) {
