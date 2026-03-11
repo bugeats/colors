@@ -4,13 +4,13 @@ OKLCH color palette generator. Outputs hex and RGB via `--json` or a terminal pr
 
 ## Architecture
 
-Two layers with a hard boundary between them:
+Two layers with hard boundaries:
 
-- **Chord** (`src/chord.rs`) — Pure data type: `{l, c, h}` in unit scale (0–1). Composable modifiers (`dim`, `rotate`, `interp`, etc.) operate entirely in unit space. Zero external dependencies. Knows nothing about color spaces, sRGB, or the `palette` crate.
+- **Chord** (`src/chord.rs`) — `{point: Color, interval: Color}` where `Color = Vector3<f64>` in `[l, c, h]` unit space (0–1). Point is the centroid; interval is a spread vector. `From<Color>` initializes with default interval `[0.5, 0, 0]`. Three extractors: `top` (point + interval/2), `bottom` (point - interval/2), `middle` (point). Builder `set_interval` overrides the spread. Semantic modifiers shift the point (`dim`, `light`, `rotate`, `ansi`), collapse the interval (`faint`, `tint`), or narrow it (`soften`). Uses `nalgebra::Vector3` for all arithmetic.
 
-- **Backends** (`src/backends.rs`) — Render types (`OklchHex`, `OklchRgb`) that convert Chord to concrete color representations. All `palette` crate interaction (Oklch construction, sRGB gamut clamping, byte conversion) lives here. Each backend `impl From<Chord>` and `impl Display`. `Chord::render::<T>()` dispatches via `From<Chord>`.
+- **Backends** (`src/backends.rs`) — Render types (`OklchHex`, `OklchRgb`) that convert `Color` to concrete color representations. All `palette` crate interaction lives here. Each backend `impl From<Color>` and `impl Display`.
 
-- `src/main.rs` — palette definitions, JSON/table output, CLI entry point
+- `src/main.rs` — palette definitions (two root Chords from Color, all others derived via Chord operations), JSON/table output, CLI entry point
 - `flake.nix` — builds the binary and a `json` derivation that captures `--json` output
 
 ## Build
@@ -19,4 +19,4 @@ Two layers with a hard boundary between them:
 
 ## Current Focus
 
-Chord/backend separation is complete. Next natural targets: extract palette definitions from `main.rs`, or add new backends (e.g. ANSI escape, CSS custom properties).
+Chord architecture is landed but color values are placeholder approximations — all 58 output names are wired but need eyeball tuning. Modifier constants (`dim` -0.199, `light` +0.16, `faint` +0.078, `tint` +0.046, `soften` -0.09, `ansi` -0.075) carried over from the old model and may need adjustment for the new symmetric semantics.

@@ -7,3 +7,4 @@ edition = "2024"
 serde = "1"
 serde_json = { version = "1", features = ["preserve_order"] }
 palette = { version = "0.7", default-features = false, features = ["std"] }
+nalgebra = "0.33"

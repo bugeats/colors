@@ -2,16 +2,16 @@ use std::fmt;
 
 use palette::{Clamp, FromColor, Oklch, Srgb};
 
-use crate::chord::Chord;
+use crate::chord::Color;
 
 const MAX_C: f64 = 0.4;
 const MAX_H: f64 = 360.0;
 
-fn to_srgb_bytes(chord: Chord) -> (u8, u8, u8) {
+fn to_srgb_bytes(color: Color) -> (u8, u8, u8) {
     let oklch = Oklch::new(
-        chord.l,
-        (chord.c * MAX_C).max(0.0),
-        chord.h.rem_euclid(1.0) * MAX_H,
+        color[0],
+        (color[1] * MAX_C).max(0.0),
+        color[2].rem_euclid(1.0) * MAX_H,
     );
     let rgb: Srgb<u8> = Srgb::from_color(oklch).clamp().into_format();
     (rgb.red, rgb.green, rgb.blue)
@@ -23,9 +23,9 @@ pub struct OklchHex {
     pub b: u8,
 }
 
-impl From<Chord> for OklchHex {
-    fn from(chord: Chord) -> Self {
-        let (r, g, b) = to_srgb_bytes(chord);
+impl From<Color> for OklchHex {
+    fn from(color: Color) -> Self {
+        let (r, g, b) = to_srgb_bytes(color);
         Self { r, g, b }
     }
 }
@@ -42,9 +42,9 @@ pub struct OklchRgb {
     pub b: u8,
 }
 
-impl From<Chord> for OklchRgb {
-    fn from(chord: Chord) -> Self {
-        let (r, g, b) = to_srgb_bytes(chord);
+impl From<Color> for OklchRgb {
+    fn from(color: Color) -> Self {
+        let (r, g, b) = to_srgb_bytes(color);
         Self { r, g, b }
     }
 }
