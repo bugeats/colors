@@ -12,7 +12,7 @@ impl From<Color> for Chord {
     fn from(point: Color) -> Self {
         Self {
             point,
-            interval: Vector3::new(0.5, 0.0, 0.0),
+            interval: Vector3::x() * 0.5,
         }
     }
 }
@@ -39,21 +39,21 @@ impl Chord {
 
     pub fn dim(self) -> Self {
         Self {
-            point: self.point - Vector3::new(0.199, 0.0, 0.0),
+            point: self.point - Vector3::x() * 0.199,
             ..self
         }
     }
 
     pub fn light(self) -> Self {
         Self {
-            point: self.point + Vector3::new(0.16, 0.0, 0.0),
+            point: self.point + Vector3::x() * 0.16,
             ..self
         }
     }
 
     pub fn rotate(self, delta: f64) -> Self {
         Self {
-            point: self.point + Vector3::new(0.0, 0.0, delta),
+            point: self.point + Vector3::z() * delta,
             ..self
         }
     }
@@ -70,26 +70,22 @@ impl Chord {
     }
 
     pub fn faint(self) -> Self {
-        let bottom_l = self.point[0] - self.interval[0] / 2.0;
-
         Self {
-            point: Vector3::new(bottom_l + 0.078, self.point[1], self.point[2]),
+            point: self.point + Vector3::x() * (0.078 - self.interval[0] / 2.0),
             interval: Vector3::zeros(),
         }
     }
 
     pub fn tint(self) -> Self {
-        let bottom_l = self.point[0] - self.interval[0] / 2.0;
-
         Self {
-            point: Vector3::new(bottom_l + 0.046, self.point[1], self.point[2]),
+            point: self.point + Vector3::x() * (0.046 - self.interval[0] / 2.0),
             interval: Vector3::zeros(),
         }
     }
 
     pub fn soften(self) -> Self {
         Self {
-            interval: self.interval - Vector3::new(0.09, 0.0, 0.0),
+            interval: self.interval - Vector3::x() * 0.09,
             ..self
         }
     }

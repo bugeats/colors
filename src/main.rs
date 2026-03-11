@@ -1,7 +1,7 @@
 mod backends;
 mod chord;
 
-use backends::{OklchHex, OklchRgb};
+use backends::Rgb;
 use chord::{Chord, Color};
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
@@ -120,10 +120,9 @@ fn print_json(palette: &[(&str, Color)]) {
     let mut rgb_map = Map::new();
 
     for (name, color) in palette {
-        let hex = OklchHex::from(*color);
-        hex_map.insert(name.to_string(), Value::String(hex.to_string()));
+        let rgb = Rgb::from(*color);
+        hex_map.insert(name.to_string(), Value::String(rgb.to_string()));
 
-        let rgb = OklchRgb::from(*color);
         let mut entry = Map::new();
         entry.insert("r".into(), Value::Number((rgb.r as i64).into()));
         entry.insert("g".into(), Value::Number((rgb.g as i64).into()));
@@ -151,11 +150,10 @@ fn print_table(palette: &[(&str, Color)]) {
     let max_name = palette.iter().map(|(n, _)| n.len()).max().unwrap_or(0);
 
     for (name, color) in palette {
-        let rgb = OklchRgb::from(*color);
-        let hex = OklchHex::from(*color);
+        let rgb = Rgb::from(*color);
 
         println!(
-            "{:<width$}  \x1b[38;2;{};{};{}m{BLOCK}{BLOCK}{BLOCK}{BLOCK}\x1b[0m {hex}",
+            "{:<width$}  \x1b[38;2;{};{};{}m{BLOCK}{BLOCK}{BLOCK}{BLOCK}\x1b[0m {rgb}",
             name,
             rgb.r,
             rgb.g,

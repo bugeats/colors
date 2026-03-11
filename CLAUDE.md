@@ -8,7 +8,7 @@ Two layers with hard boundaries:
 
 - **Chord** (`src/chord.rs`) — `{point: Color, interval: Color}` where `Color = Vector3<f64>` in `[l, c, h]` unit space (0–1). Point is the centroid; interval is a spread vector. `From<Color>` initializes with default interval `[0.5, 0, 0]`. Three extractors: `top` (point + interval/2), `bottom` (point - interval/2), `middle` (point). Builder `set_interval` overrides the spread. Semantic modifiers shift the point (`dim`, `light`, `rotate`, `ansi`), collapse the interval (`faint`, `tint`), or narrow it (`soften`). Uses `nalgebra::Vector3` for all arithmetic.
 
-- **Backends** (`src/backends.rs`) — Render types (`OklchHex`, `OklchRgb`) that convert `Color` to concrete color representations. All `palette` crate interaction lives here. Each backend `impl From<Color>` and `impl Display`.
+- **Backends** (`src/backends.rs`) — Single render type `Rgb` converts `Color` to sRGB bytes. All `palette` crate interaction lives here. `impl From<Color>` for conversion, `impl Display` for hex output.
 
 - `src/main.rs` — palette definitions (two root Chords from Color, all others derived via Chord operations), JSON/table output, CLI entry point
 - `flake.nix` — builds the binary and a `json` derivation that captures `--json` output
