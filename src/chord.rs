@@ -2,7 +2,7 @@ use nalgebra::Vector3;
 
 pub type Color = Vector3<f64>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub struct Chord {
     pub point: Color,
     pub interval: Color,
@@ -18,6 +18,10 @@ impl From<Color> for Chord {
 }
 
 impl Chord {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+
     pub fn top(self) -> Color {
         self.point + self.interval / 2.0
     }

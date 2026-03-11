@@ -1,45 +1,99 @@
 use serde::ser::{SerializeMap, Serializer};
 use serde::Serialize;
 
-use Node::*;
+use crate::backends::ThemeRgb;
+use crate::chord::Chord;
+
+use Modifier::*;
+use UnderlineStyle::*;
 
 #[derive(Clone, Copy, Serialize)]
-struct Underline {
-    color: &'static str,
-    style: &'static str,
+#[serde(rename_all = "snake_case")]
+#[allow(dead_code)]
+enum Modifier {
+    Bold,
+    Dim,
+    Italic,
+    Underlined,
+    SlowBlink,
+    RapidBlink,
+    Reversed,
+    Hidden,
+    CrossedOut,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[allow(dead_code)]
+enum UnderlineStyle {
+    Line,
+    Curl,
+    Dashed,
+    Dotted,
+    DoubleLine,
+}
+
+#[derive(Clone, Copy, Default)]
+enum Underline {
+    #[default]
+    None,
+    Styled {
+        color: Chord,
+        style: UnderlineStyle,
+    },
+}
+
+impl Underline {
+    fn is_none(&self) -> bool {
+        matches!(self, Underline::None)
+    }
+
+    /// Child overrides parent; None inherits.
+    fn merge(self, child: Self) -> Self {
+        if child.is_none() {
+            self
+        } else {
+            child
+        }
+    }
+}
+
+impl Serialize for Underline {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Underline::None => serializer.serialize_none(),
+
+            Underline::Styled { color, style } => {
+                let mut map = serializer.serialize_map(None)?;
+
+                if !color.is_default() {
+                    map.serialize_entry("color", &ThemeRgb::from(color.middle()).to_string())?;
+                }
+
+                map.serialize_entry("style", style)?;
+                map.end()
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Default)]
 struct Style {
-    fg: Option<&'static str>,
-    bg: Option<&'static str>,
-    underline: Option<Underline>,
-    modifiers: &'static [&'static str],
+    color: Chord,
+    underline: Underline,
+    modifiers: &'static [Modifier],
 }
 
 impl Style {
-    const fn new() -> Self {
-        Self {
-            fg: None,
-            bg: None,
-            underline: None,
-            modifiers: &[],
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.fg.is_none()
-            && self.bg.is_none()
-            && self.underline.is_none()
-            && self.modifiers.is_empty()
-    }
-
     /// Child overrides parent per-field; empty child fields inherit.
     fn merge(self, child: Self) -> Self {
         Self {
-            fg: child.fg.or(self.fg),
-            bg: child.bg.or(self.bg),
-            underline: child.underline.or(self.underline),
+            color: if child.color.is_default() {
+                self.color
+            } else {
+                child.color
+            },
+            underline: self.underline.merge(child.underline),
             modifiers: if child.modifiers.is_empty() {
                 self.modifiers
             } else {
@@ -47,56 +101,22 @@ impl Style {
             },
         }
     }
-
-    const fn fg(mut self, fg: &'static str) -> Self {
-        self.fg = Some(fg);
-        self
-    }
-
-    const fn bg(mut self, bg: &'static str) -> Self {
-        self.bg = Some(bg);
-        self
-    }
-
-    const fn underline(mut self, color: &'static str, style: &'static str) -> Self {
-        self.underline = Some(Underline { color, style });
-        self
-    }
-
-    const fn modifiers(mut self, modifiers: &'static [&'static str]) -> Self {
-        self.modifiers = modifiers;
-        self
-    }
 }
 
-/// Bare string for fg-only (Helix shorthand), table otherwise.
 impl Serialize for Style {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let is_fg_only = self.bg.is_none() && self.underline.is_none() && self.modifiers.is_empty();
+        let fg = ThemeRgb::from(self.color.middle()).to_string();
+        let bg = ThemeRgb::from(self.color.bottom()).to_string();
 
-        if is_fg_only {
-            if let Some(fg) = self.fg {
-                return serializer.serialize_str(fg);
-            }
-        }
-
-        let field_count = self.fg.is_some() as usize
-            + self.bg.is_some() as usize
-            + self.underline.is_some() as usize
-            + (!self.modifiers.is_empty()) as usize;
+        let field_count =
+            2 + (!self.underline.is_none()) as usize + (!self.modifiers.is_empty()) as usize;
 
         let mut map = serializer.serialize_map(Some(field_count))?;
+        map.serialize_entry("fg", fg.as_str())?;
+        map.serialize_entry("bg", bg.as_str())?;
 
-        if let Some(fg) = self.fg {
-            map.serialize_entry("fg", fg)?;
-        }
-
-        if let Some(bg) = self.bg {
-            map.serialize_entry("bg", bg)?;
-        }
-
-        if let Some(ref underline) = self.underline {
-            map.serialize_entry("underline", underline)?;
+        if !self.underline.is_none() {
+            map.serialize_entry("underline", &self.underline)?;
         }
 
         if !self.modifiers.is_empty() {
@@ -107,45 +127,42 @@ impl Serialize for Style {
     }
 }
 
-#[derive(Clone, Copy)]
-enum Node {
-    Section(Style, &'static [(&'static str, Node)]),
-    Branch(Style, &'static [(&'static str, Node)]),
-    Leaf(Style),
-}
-
-macro_rules! node_style {
-    ($name:ident, $($param:ident : $ty:ty),+) => {
-        const fn $name(self, $($param: $ty),+) -> Self {
-            match self {
-                Leaf(s) => Leaf(s.$name($($param),+)),
-                Branch(s, c) => Branch(s.$name($($param),+), c),
-                Section(s, c) => Section(s.$name($($param),+), c),
-            }
-        }
-    };
+struct Node {
+    name: &'static str,
+    style: Style,
+    children: Vec<Node>,
 }
 
 impl Node {
-    node_style!(fg, fg: &'static str);
-    node_style!(bg, bg: &'static str);
-    node_style!(underline, color: &'static str, style: &'static str);
-    node_style!(modifiers, modifiers: &'static [&'static str]);
+    fn child(mut self, node: Node) -> Self {
+        self.children.push(node);
+        self
+    }
+
+    fn color(mut self, color: Chord) -> Self {
+        self.style.color = color;
+        self
+    }
+
+    fn underline(mut self, color: Chord, style: UnderlineStyle) -> Self {
+        self.style.underline = Underline::Styled { color, style };
+        self
+    }
+
+    fn modifiers(mut self, modifiers: &'static [Modifier]) -> Self {
+        self.style.modifiers = modifiers;
+        self
+    }
 }
 
-const fn leaf() -> Node {
-    Leaf(Style::new())
+fn node(name: &'static str) -> Node {
+    Node {
+        name,
+        style: Style::default(),
+        children: Vec::new(),
+    }
 }
 
-const fn branch(children: &'static [(&'static str, Node)]) -> Node {
-    Branch(Style::new(), children)
-}
-
-const fn section(children: &'static [(&'static str, Node)]) -> Node {
-    Section(Style::new(), children)
-}
-
-/// Format a toml::Value as inline TOML (inline tables, not sections).
 fn fmt_inline(value: &toml::Value) -> String {
     match value {
         toml::Value::Table(table) => {
@@ -174,228 +191,256 @@ fn toml_key(key: &str) -> String {
 }
 
 fn emit_scope(path: &str, style: &Style) {
-    if style.is_empty() {
-        return;
-    }
-
     let value = toml::Value::try_from(style).unwrap();
     println!("{} = {}", toml_key(path), fmt_inline(&value));
 }
 
-fn emit_node(path: &str, node: &Node, inherited: Style) {
-    match node {
-        Section(style, children) => {
-            let cascaded = inherited.merge(*style);
+fn emit_node(prefix: &str, node: &Node, inherited: Style) {
+    let path = if node.name.is_empty() {
+        prefix.to_string()
+    } else if prefix.is_empty() {
+        node.name.to_string()
+    } else {
+        format!("{prefix}.{}", node.name)
+    };
 
-            for (name, child) in *children {
-                emit_node(name, child, cascaded);
-            }
-        }
+    let cascaded = inherited.merge(node.style);
 
-        Branch(style, children) => {
-            let cascaded = inherited.merge(*style);
-            emit_scope(path, &cascaded);
+    if !node.name.is_empty() {
+        emit_scope(&path, &cascaded);
+    }
 
-            for (name, child) in *children {
-                emit_node(&format!("{path}.{name}"), child, cascaded);
-            }
-        }
-
-        Leaf(style) => {
-            let cascaded = inherited.merge(*style);
-            emit_scope(path, &cascaded);
-        }
+    for child in &node.children {
+        emit_node(&path, child, cascaded);
     }
 }
 
 pub fn print_helix() {
-    for (name, node) in THEME {
-        emit_node(name, node, Style::new());
-    }
+    emit_node("", &theme(), Style::default());
 }
 
-const THEME: &[(&str, Node)] = &[
-    (
-        "Syntax",
-        section(&[
-            ("comment", leaf().fg("comment-fg")),
-            (
-                "keyword",
-                branch(&[("directive", leaf().fg("keyword-fg-alt"))]).fg("keyword-fg"),
+fn theme() -> Node {
+    node("")
+        .child(node("attribute"))
+        .child(
+            node("type")
+                .child(node("builtin"))
+                .child(node("parameter"))
+                .child(node("enum").child(node("variant"))),
+        )
+        .child(node("constructor"))
+        .child(
+            node("constant")
+                .child(node("builtin").child(node("boolean")))
+                .child(node("character").child(node("escape")))
+                .child(node("numeric").child(node("integer")).child(node("float"))),
+        )
+        .child(
+            node("string").child(node("regexp")).child(
+                node("special")
+                    .child(node("path"))
+                    .child(node("url"))
+                    .child(node("symbol")),
             ),
-            ("string", leaf().fg("string-fg")),
-            (
-                "constant",
-                branch(&[
-                    ("numeric", leaf().fg("string-fg-alt")),
-                    (
-                        "character",
-                        branch(&[("escape", leaf().fg("keyword-fg-alt"))]),
-                    ),
-                    ("builtin", leaf()),
-                ])
-                .fg("string-fg"),
-            ),
-            ("type", branch(&[("builtin", leaf())]).fg("type-fg")),
-            (
-                "function",
-                branch(&[("macro", leaf().fg("keyword-fg")), ("builtin", leaf())]).fg("normal-fg"),
-            ),
-            (
-                "variable",
-                branch(&[
-                    ("builtin", leaf().fg("keyword-fg-alt")),
-                    ("other", branch(&[("member", leaf().fg("normal-fg-alt"))])),
-                    ("parameter", leaf()),
-                ])
-                .fg("normal-fg"),
-            ),
-            (
-                "punctuation",
-                branch(&[("delimiter", leaf())]).fg("punctuation-fg"),
-            ),
-            ("operator", leaf().fg("keyword-fg")),
-            ("tag", leaf().fg("keyword-fg")),
-            ("label", leaf().fg("string-fg-alt")),
-            ("namespace", leaf().fg("keyword-fg-alt")),
-            ("attribute", leaf().fg("keyword-fg-alt")),
-            ("constructor", leaf().fg("type-fg")),
-            ("special", leaf().fg("string-fg-alt")),
-        ]),
-    ),
-    (
-        "Markup",
-        section(&[(
-            "markup",
-            branch(&[
-                ("heading", leaf().fg("keyword-fg")),
-                ("bold", leaf().modifiers(&["bold"])),
-                ("italic", leaf().modifiers(&["italic"])),
-                ("strikethrough", leaf().modifiers(&["crossed_out"])),
-                (
-                    "link",
-                    branch(&[
-                        ("url", leaf().fg("comment-fg").modifiers(&["underlined"])),
-                        ("text", leaf().fg("keyword-fg")),
-                    ]),
+        )
+        .child(
+            node("comment")
+                .child(node("line").child(node("documentation")))
+                .child(node("block").child(node("documentation")))
+                .child(node("unused")),
+        )
+        .child(
+            node("variable")
+                .child(node("builtin"))
+                .child(node("parameter"))
+                .child(node("other").child(node("member").child(node("private")))),
+        )
+        .child(node("label"))
+        .child(
+            node("punctuation")
+                .child(node("delimiter"))
+                .child(node("bracket"))
+                .child(node("special")),
+        )
+        .child(
+            node("keyword")
+                .child(
+                    node("control")
+                        .child(node("conditional"))
+                        .child(node("repeat"))
+                        .child(node("import"))
+                        .child(node("return"))
+                        .child(node("exception")),
+                )
+                .child(node("operator"))
+                .child(node("directive"))
+                .child(node("function"))
+                .child(node("storage").child(node("type")).child(node("modifier"))),
+        )
+        .child(node("operator"))
+        .child(
+            node("function")
+                .child(node("builtin"))
+                .child(node("method").child(node("private")))
+                .child(node("macro"))
+                .child(node("special")),
+        )
+        .child(node("tag").child(node("builtin")))
+        .child(node("namespace"))
+        .child(node("special"))
+        .child(
+            node("markup")
+                .child(
+                    node("heading")
+                        .child(node("marker"))
+                        .child(node("1"))
+                        .child(node("2"))
+                        .child(node("3"))
+                        .child(node("4"))
+                        .child(node("5"))
+                        .child(node("6"))
+                        .child(node("completion"))
+                        .child(node("hover")),
+                )
+                .child(
+                    node("list")
+                        .child(node("unnumbered"))
+                        .child(node("numbered"))
+                        .child(node("checked"))
+                        .child(node("unchecked")),
+                )
+                .child(node("bold").modifiers(&[Bold]))
+                .child(node("italic").modifiers(&[Italic]))
+                .child(node("strikethrough").modifiers(&[CrossedOut]))
+                .child(
+                    node("link")
+                        .child(node("url").modifiers(&[Underlined]))
+                        .child(node("label"))
+                        .child(node("text")),
+                )
+                .child(node("quote"))
+                .child(
+                    node("raw")
+                        .child(
+                            node("inline")
+                                .child(node("completion"))
+                                .child(node("hover")),
+                        )
+                        .child(node("block")),
+                )
+                .child(
+                    node("normal")
+                        .child(node("completion"))
+                        .child(node("hover")),
                 ),
-                ("raw", leaf().fg("string-fg")),
-            ]),
-        )]),
-    ),
-    (
-        "Diff",
-        section(&[(
-            "diff",
-            branch(&[
-                ("plus", leaf().fg("ansi-green")),
-                ("minus", leaf().fg("ansi-red")),
-                ("delta", leaf().fg("ansi-blue")),
-            ]),
-        )]),
-    ),
-    (
-        "UI",
-        section(&[(
-            "ui",
-            branch(&[
-                (
-                    "background",
-                    branch(&[("separator", leaf().fg("comment-fg"))]).bg("normal-bg"),
+        )
+        .child(
+            node("diff")
+                .child(node("plus").child(node("gutter")))
+                .child(node("minus").child(node("gutter")))
+                .child(
+                    node("delta")
+                        .child(node("moved"))
+                        .child(node("conflict"))
+                        .child(node("gutter")),
                 ),
-                (
-                    "linenr",
-                    branch(&[("selected", leaf().fg("normal-fg"))]).fg("comment-fg"),
-                ),
-                (
-                    "statusline",
-                    branch(&[("inactive", leaf().fg("comment-fg").bg("ui-level-1-bg"))])
-                        .fg("normal-fg")
-                        .bg("ui-level-1-bg"),
-                ),
-                ("popup", leaf().bg("ui-level-2-bg")),
-                ("window", leaf().fg("ui-level-2-fg")),
-                ("help", leaf().fg("normal-fg").bg("ui-level-3-bg")),
-                (
-                    "text",
-                    branch(&[
-                        ("focus", leaf().fg("normal-fg-alt")),
-                        ("inactive", leaf().fg("comment-fg")),
-                        ("directory", leaf().fg("keyword-fg")),
-                    ])
-                    .fg("normal-fg"),
-                ),
-                (
-                    "virtual",
-                    branch(&[
-                        ("ruler", leaf().bg("ui-level-1-bg")),
-                        ("indent-guide", leaf()),
-                        ("jump-label", leaf().fg("error-fg").modifiers(&["bold"])),
-                    ])
-                    .fg("visible-whitespace-fg"),
-                ),
-                (
-                    "selection",
-                    branch(&[("primary", leaf())]).bg("selection-bg"),
-                ),
-                (
-                    "cursor",
-                    branch(&[
-                        ("select", leaf().bg("cursor-bg")),
-                        ("insert", leaf().bg("normal-fg")),
-                        (
-                            "primary",
-                            branch(&[
-                                ("select", leaf().bg("cursor-bg")),
-                                ("insert", leaf().bg("normal-fg")),
-                            ]),
+        )
+        .child(
+            node("diagnostic")
+                .child(node("hint").underline(Chord::default(), Curl))
+                .child(node("info").underline(Chord::default(), Curl))
+                .child(node("warning").underline(Chord::default(), Curl))
+                .child(node("error").underline(Chord::default(), Curl))
+                .child(node("unnecessary").modifiers(&[Dim]))
+                .child(node("deprecated").modifiers(&[CrossedOut])),
+        )
+        .child(node("warning"))
+        .child(node("error"))
+        .child(node("info"))
+        .child(node("hint"))
+        .child(
+            node("ui")
+                .child(node("background").child(node("separator")))
+                .child(
+                    node("cursor")
+                        .modifiers(&[Reversed])
+                        .child(node("normal"))
+                        .child(node("insert"))
+                        .child(node("select"))
+                        .child(node("match"))
+                        .child(
+                            node("primary")
+                                .child(node("normal"))
+                                .child(node("insert"))
+                                .child(node("select")),
                         ),
-                        ("match", leaf().bg("selection-bg-alt")),
-                    ])
-                    .modifiers(&["reversed"]),
-                ),
-                (
-                    "cursorline",
-                    branch(&[("primary", leaf().bg("ui-level-1-bg"))]),
-                ),
-                (
-                    "highlight",
-                    branch(&[("frameline", leaf().bg("error-bg"))]).bg("selection-bg"),
-                ),
-                (
-                    "debug",
-                    branch(&[("breakpoint", leaf().fg("error-fg"))]).fg("error-bg"),
-                ),
-                (
-                    "menu",
-                    branch(&[
-                        ("selected", leaf().fg("ui-level-2-bg").bg("normal-fg")),
-                        ("scroll", leaf().fg("comment-fg").bg("ui-level-1-bg")),
-                    ])
-                    .fg("normal-fg")
-                    .bg("ui-level-2-bg"),
-                ),
-            ]),
-        )]),
-    ),
-    (
-        "Diagnostics",
-        section(&[
-            (
-                "diagnostic",
-                branch(&[
-                    ("hint", leaf().underline("fg-hint", "curl")),
-                    ("info", leaf().underline("fg-info", "curl")),
-                    ("warning", leaf().underline("fg-warn", "curl")),
-                    ("error", leaf().underline("fg-err", "curl")),
-                    ("unnecessary", leaf().modifiers(&["dim"])),
-                    ("deprecated", leaf().modifiers(&["crossed_out"])),
-                ]),
-            ),
-            ("warning", leaf().fg("fg-warn")),
-            ("error", leaf().fg("fg-err")),
-            ("info", leaf().fg("fg-info")),
-            ("hint", leaf().fg("fg-hint")),
-        ]),
-    ),
-];
+                )
+                .child(
+                    node("cursorline")
+                        .child(node("primary"))
+                        .child(node("secondary")),
+                )
+                .child(
+                    node("cursorcolumn")
+                        .child(node("primary"))
+                        .child(node("secondary")),
+                )
+                .child(node("selection").child(node("primary")))
+                .child(node("highlight").child(node("frameline")))
+                .child(
+                    node("debug")
+                        .child(node("breakpoint"))
+                        .child(node("active")),
+                )
+                .child(
+                    node("gutter")
+                        .child(node("selected").child(node("virtual")))
+                        .child(node("virtual")),
+                )
+                .child(node("linenr").child(node("selected")))
+                .child(
+                    node("statusline")
+                        .child(node("inactive"))
+                        .child(node("normal"))
+                        .child(node("insert"))
+                        .child(node("select"))
+                        .child(node("separator"))
+                        .child(node("active")),
+                )
+                .child(
+                    node("bufferline")
+                        .child(node("active"))
+                        .child(node("background")),
+                )
+                .child(node("popup").child(node("info")))
+                .child(node("window"))
+                .child(node("help"))
+                .child(
+                    node("picker")
+                        .child(node("header").child(node("column").child(node("active")))),
+                )
+                .child(
+                    node("text")
+                        .child(node("focus"))
+                        .child(node("inactive"))
+                        .child(node("info"))
+                        .child(node("directory"))
+                        .child(node("symlink")),
+                )
+                .child(
+                    node("virtual")
+                        .child(node("ruler"))
+                        .child(node("whitespace"))
+                        .child(node("indent-guide"))
+                        .child(
+                            node("inlay-hint")
+                                .child(node("parameter"))
+                                .child(node("type")),
+                        )
+                        .child(node("wrap"))
+                        .child(node("jump-label").modifiers(&[Bold])),
+                )
+                .child(node("menu").child(node("selected")).child(node("scroll"))),
+        )
+        .child(node("tabstop"))
+}
