@@ -1,6 +1,6 @@
 use std::fmt;
 
-use palette::{Clamp, FromColor, Oklch, Srgb};
+use palette::{Clamp, FromColor, Oklab, Oklch, Srgb};
 
 use crate::chord::Color;
 
@@ -22,6 +22,7 @@ impl From<Color> for Rgb {
         );
 
         let srgb: Srgb<u8> = Srgb::from_color(oklch).clamp().into_format();
+
         Self {
             r: srgb.red,
             g: srgb.green,
