@@ -1,11 +1,12 @@
 mod backends;
 mod chord;
+mod helix;
 
-use backends::Rgb;
+use backends::ThemeRgb;
 use chord::{Chord, Color};
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 
 fn normal() -> Chord {
     Chord::from(Color::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03])
@@ -59,7 +60,6 @@ fn palette() -> Vec<(&'static str, Color)> {
     let info = warn.rotate(2.0 / 24.0);
     let hint = info.rotate(3.0 / 24.0);
 
-    // Syntax
     let selection = level_1.rotate(3.0 / 6.0);
     let selection_alt = selection.rotate(-2.0 / 12.0);
 
@@ -132,7 +132,7 @@ fn print_json(palette: &[(&str, Color)]) {
     let mut rgb_map = Map::new();
 
     for (name, color) in palette {
-        let rgb = Rgb::from(*color);
+        let rgb = ThemeRgb::from(*color);
         hex_map.insert(name.to_string(), Value::String(rgb.to_string()));
 
         let mut entry = Map::new();
@@ -161,31 +161,18 @@ fn print_table(palette: &[(&str, Color)]) {
     const BLOCK: char = '\u{2588}';
     let max_name = palette.iter().map(|(n, _)| n.len()).max().unwrap_or(0);
 
-    let nfg = Rgb::from(normal().middle());
-    let sfg = format!("\x1b[38;2;{};{};{}m", nfg.r, nfg.g, nfg.b);
-    let nbg = Rgb::from(normal().bottom());
-    let sbg = format!("\x1b[48;2;{};{};{}m", nbg.r, nbg.g, nbg.b);
+    let nfg = ThemeRgb::from(normal().middle());
+    let nbg = ThemeRgb::from(normal().bottom());
+    let base = anstyle::Style::new()
+        .fg_color(Some(nfg.into()))
+        .bg_color(Some(nbg.into()));
 
     for (name, color) in palette {
-        let rgb = Rgb::from(*color);
+        let rgb = ThemeRgb::from(*color);
+        let swatch = base.fg_color(Some(rgb.into()));
 
-        print!("{}{}", &sfg, &sbg);
-
-        print!(
-            "{:<width$}  \x1b[38;2;{};{};{}m{BLOCK}{BLOCK}{BLOCK}{BLOCK}\x1b[0m",
-            name,
-            rgb.r,
-            rgb.g,
-            rgb.b,
-            width = max_name,
-        );
-
-        print!("{}{}", &sfg, &sbg);
-        print!(" {rgb}    \n");
-        print!("\x1b[0m");
+        print!("{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK}{base} {rgb}    \n{base:#}");
     }
-
-    // print!("\x1b[0m");
 }
 
 fn main() {
@@ -193,6 +180,8 @@ fn main() {
 
     if std::env::args().any(|a| a == "--json") {
         print_json(&palette);
+    } else if std::env::args().any(|a| a == "--helix") {
+        helix::print_helix();
     } else {
         print_table(&palette);
     }

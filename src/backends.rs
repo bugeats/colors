@@ -1,19 +1,20 @@
 use std::fmt;
 
-use palette::{Clamp, FromColor, Oklab, Oklch, Srgb};
+use palette::{Clamp, FromColor, Oklch, Srgb};
 
 use crate::chord::Color;
 
 const MAX_C: f64 = 0.4;
 const MAX_H: f64 = 360.0;
 
-pub struct Rgb {
+#[derive(Clone, Copy)]
+pub struct ThemeRgb {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl From<Color> for Rgb {
+impl From<Color> for ThemeRgb {
     fn from(color: Color) -> Self {
         let oklch = Oklch::new(
             color[0],
@@ -31,7 +32,13 @@ impl From<Color> for Rgb {
     }
 }
 
-impl fmt::Display for Rgb {
+impl From<ThemeRgb> for anstyle::Color {
+    fn from(rgb: ThemeRgb) -> Self {
+        anstyle::RgbColor(rgb.r, rgb.g, rgb.b).into()
+    }
+}
+
+impl fmt::Display for ThemeRgb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }

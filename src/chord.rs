@@ -56,9 +56,8 @@ impl Chord {
     }
 
     pub fn set_interval<T: Into<Vector3<f64>>>(self, interval: T) -> Self {
-        let interval = interval.into();
         Self {
-            interval: Vector3::from(interval),
+            interval: interval.into(),
             ..self
         }
     }
@@ -87,13 +86,6 @@ impl Chord {
     pub fn faint(self) -> Self {
         Self {
             point: Vector3::new(0.27, self.point[1], self.point[2]),
-            ..self
-        }
-    }
-
-    pub fn soften(self) -> Self {
-        Self {
-            interval: self.interval - Vector3::x() * 0.09,
             ..self
         }
     }
