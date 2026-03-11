@@ -1,45 +1,47 @@
-mod oklch;
+mod backends;
+mod chord;
 
-use oklch::Oklch;
+use backends::{OklchHex, OklchRgb};
+use chord::Chord;
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 
-fn palette() -> Vec<(&'static str, Oklch)> {
-    let bg = Oklch::new(0.249193, 0.004805, 67.6049);
-    let fg = Oklch::new(0.794120, 0.023073, 74.0457);
+fn palette() -> Vec<(&'static str, Chord)> {
+    let bg = Chord::new(0.249193, 0.012013, 0.187791);
+    let fg = Chord::new(0.794120, 0.057683, 0.205683);
 
-    let red = Oklch::new(0.805840, 0.102584, 38.0);
-    let yellow = red.with_hue(94.0564);
-    let orange = red.with_hue(59.1782);
-    let green = red.with_hue(152.9690);
-    let blue = red.with_hue(275.8353);
-    let magenta = red.with_hue(320.1364);
-    let brown = Oklch::new(0.794724, 0.057422, 77.4583);
+    let red = Chord::new(0.805840, 0.256460, 0.105556);
+    let yellow = red.with_hue(0.261268);
+    let orange = red.with_hue(0.164384);
+    let green = red.with_hue(0.424914);
+    let blue = red.with_hue(0.766209);
+    let magenta = red.with_hue(0.889268);
+    let brown = Chord::new(0.794724, 0.143555, 0.215162);
 
-    let err_red = Oklch::new(0.802315, 0.091671, 27.5819);
-    let warn_orange = Oklch::new(0.799843, 0.087862, 48.3133);
-    let info_seafoam = Oklch::new(0.784713, 0.067461, 163.5503);
-    let hint_cyan = Oklch::new(0.783736, 0.066794, 172.4786);
+    let err_red = Chord::new(0.802315, 0.229178, 0.076616);
+    let warn_orange = Chord::new(0.799843, 0.219655, 0.134204);
+    let info_seafoam = Chord::new(0.784713, 0.168653, 0.454306);
+    let hint_cyan = Chord::new(0.783736, 0.166985, 0.479107);
 
-    let ansi_red = Oklch::new(fg.dim().l, 0.09, 40.0);
-    let ansi_yellow = ansi_red.rotate(60.0);
-    let ansi_green = ansi_red.rotate(120.0);
-    let ansi_blue = ansi_red.rotate(190.0).ansi_desat();
-    let ansi_cyan = ansi_blue.rotate(-33.0).ansi_desat();
-    let ansi_magenta = ansi_red.rotate(-20.0);
+    let ansi_red = Chord::new(fg.dim().l, 0.225, 0.111111);
+    let ansi_yellow = ansi_red.rotate(1.0 / 6.0);
+    let ansi_green = ansi_red.rotate(1.0 / 3.0);
+    let ansi_blue = ansi_red.rotate(19.0 / 36.0).ansi_desat();
+    let ansi_cyan = ansi_blue.rotate(-0.091667).ansi_desat();
+    let ansi_magenta = ansi_red.rotate(-1.0 / 18.0);
     let ansi_white = fg;
     let ansi_black = bg;
 
     // Hue-rotated alternates for secondary roles
-    let alt_green = Oklch::new(0.788608, 0.070668, 126.8088);
-    let alt_blue = Oklch::new(0.788950, 0.076424, 229.8027);
-    let alt_magenta = Oklch::new(0.796963, 0.074607, 287.1678);
-    let alt_orange = Oklch::new(0.803755, 0.085227, 18.1987);
+    let alt_green = Chord::new(0.788608, 0.176670, 0.352247);
+    let alt_blue = Chord::new(0.788950, 0.191060, 0.638341);
+    let alt_magenta = Chord::new(0.796963, 0.186518, 0.797688);
+    let alt_orange = Chord::new(0.803755, 0.213068, 0.050552);
 
-    let cursor_bg = Oklch::new(0.795777, 0.099834, 273.8793);
+    let cursor_bg = Chord::new(0.795777, 0.249585, 0.760776);
 
-    let punc = fg.dim().dim().with_chroma(0.14).with_hue(33.0);
+    let punc = fg.dim().dim().with_chroma(0.35).with_hue(0.091667);
 
     vec![
         ("COLOR_ANSI_BLACK_DIM", ansi_black.ansi_dim()),
@@ -104,18 +106,19 @@ fn palette() -> Vec<(&'static str, Oklch)> {
     ]
 }
 
-fn print_json(palette: &[(&str, Oklch)]) {
+fn print_json(palette: &[(&str, Chord)]) {
     let mut hex_map = Map::new();
     let mut rgb_map = Map::new();
 
     for (name, color) in palette {
-        hex_map.insert(name.to_string(), Value::String(color.to_hex()));
+        let hex = color.render::<OklchHex>();
+        hex_map.insert(name.to_string(), Value::String(hex.to_string()));
 
-        let (r, g, b) = color.to_rgb();
+        let rgb = color.render::<OklchRgb>();
         let mut entry = Map::new();
-        entry.insert("r".into(), Value::Number((r as i64).into()));
-        entry.insert("g".into(), Value::Number((g as i64).into()));
-        entry.insert("b".into(), Value::Number((b as i64).into()));
+        entry.insert("r".into(), Value::Number((rgb.r as i64).into()));
+        entry.insert("g".into(), Value::Number((rgb.g as i64).into()));
+        entry.insert("b".into(), Value::Number((rgb.b as i64).into()));
         rgb_map.insert(name.to_string(), Value::Object(entry));
     }
 
@@ -134,21 +137,20 @@ fn print_json(palette: &[(&str, Oklch)]) {
     println!("{}", String::from_utf8(buf).unwrap());
 }
 
-fn print_table(palette: &[(&str, Oklch)]) {
+fn print_table(palette: &[(&str, Chord)]) {
     const BLOCK: char = '\u{2588}';
     let max_name = palette.iter().map(|(n, _)| n.len()).max().unwrap_or(0);
 
     for (name, color) in palette {
-        let (r, g, b) = color.to_rgb();
-        let hex = color.to_hex();
+        let rgb = color.render::<OklchRgb>();
+        let hex = color.render::<OklchHex>();
 
         println!(
-            "{:<width$}  \x1b[38;2;{};{};{}m{BLOCK}{BLOCK}{BLOCK}{BLOCK}\x1b[0m {}",
+            "{:<width$}  \x1b[38;2;{};{};{}m{BLOCK}{BLOCK}{BLOCK}{BLOCK}\x1b[0m {hex}",
             name,
-            r,
-            g,
-            b,
-            hex,
+            rgb.r,
+            rgb.g,
+            rgb.b,
             width = max_name,
         );
     }
