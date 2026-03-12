@@ -5,6 +5,22 @@ use crate::chord::Chord;
 use Modifier::*;
 use UnderlineStyle::*;
 use nalgebra::Vector3;
+use palette::white_point::B;
+
+fn normal() -> Chord {
+    Chord::from(Vector3::new(0.80, 0.05, 0.20)).set_interval([1.11, 0.05, -0.03].into())
+}
+
+fn brown() -> Chord {
+    let norm = normal();
+    let intr = norm.interval + Vector3::new(-0.22, 0.09, 0.1);
+
+    normal()
+        .rotate(3.0 / 48.0)
+        .set_sat(norm.sat() + 0.08)
+        .set_lit(norm.lit() - 0.09)
+        .set_interval(intr)
+}
 
 pub(super) fn theme() -> Node {
     let markup = node("markup")
@@ -73,9 +89,7 @@ pub(super) fn theme() -> Node {
         );
 
     node("")
-        .transform(|_| {
-            Chord::from(Vector3::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
-        })
+        .transform(|_| normal())
         .child(markup)
         .child(node("attribute"))
         .child(node("tabstop"))
@@ -93,12 +107,15 @@ pub(super) fn theme() -> Node {
                 .child(node("numeric").child(node("integer")).child(node("float"))),
         )
         .child(
-            node("string").child(node("regexp")).child(
-                node("special")
-                    .child(node("path"))
-                    .child(node("url"))
-                    .child(node("symbol")),
-            ),
+            node("string")
+                .transform(|c| c.mk_saturated().mk_yellow().pin_bottom(c))
+                .child(node("regexp"))
+                .child(
+                    node("special")
+                        .child(node("path"))
+                        .child(node("url"))
+                        .child(node("symbol")),
+                ),
         )
         .child(
             node("variable")
@@ -109,6 +126,14 @@ pub(super) fn theme() -> Node {
         .child(node("label"))
         .child(
             node("punctuation")
+                .transform(|c| {
+                    c.faintly()
+                        .pop_up()
+                        .pop_up()
+                        .pop_up()
+                        .mk_saturated()
+                        .pin_bottom(c)
+                })
                 .child(node("delimiter"))
                 .child(node("bracket"))
                 .child(node("special")),
@@ -117,6 +142,7 @@ pub(super) fn theme() -> Node {
         .child(node("operator"))
         .child(
             node("function")
+                .transform(|c| c.shimmer().pin_bottom(&normal()))
                 .child(node("builtin"))
                 .child(node("method").child(node("private")))
                 .child(node("macro"))
@@ -127,21 +153,10 @@ pub(super) fn theme() -> Node {
         .child(node("special"))
         .child(
             node("comment")
-                .transform(|c| c.desaturated().pushback().pin_bottom(c))
+                .transform(|c| c.desaturated().push_back().pin_bottom(c))
                 .child(node("line").child(node("documentation")))
                 .child(node("block").child(node("documentation")))
                 .child(node("unused")),
-        )
-        .child(
-            node("diff")
-                .child(node("plus").child(node("gutter")))
-                .child(node("minus").child(node("gutter")))
-                .child(
-                    node("delta")
-                        .child(node("moved"))
-                        .child(node("conflict"))
-                        .child(node("gutter")),
-                ),
         )
         .child(
             node("diagnostic")
@@ -157,11 +172,47 @@ pub(super) fn theme() -> Node {
         .child(node("info"))
         .child(node("hint"))
         .child(ui())
+        .child(
+            node("diff")
+                .transform(|c| {
+                    c.candy()
+                        .mk_blue()
+                        .push_back()
+                        .push_back()
+                        .push_back()
+                        .push_back()
+                        .pin_bottom(&normal())
+                })
+                .child(
+                    node("plus")
+                        .transform(|c| c.mk_green())
+                        .child(node("gutter")),
+                )
+                .child(
+                    node("minus")
+                        .child(node("gutter"))
+                        .transform(|c| c.mk_red()),
+                )
+                .child(
+                    node("delta")
+                        .transform(|c| c.mk_orange())
+                        .child(node("moved"))
+                        .child(node("conflict").transform(|c| {
+                            let red = normal().candy().mk_red();
+                            c.mix(&red.pin_bottom(&red)).push_back().push_back()
+                        }))
+                        .child(node("gutter")),
+                ),
+        )
 }
 
 fn cursor() -> Node {
     let normal = node("normal");
-    let insert = node("insert").transform(|c| c.mk_red());
+
+    let insert = node("insert")
+        .modifiers(&[Modifier::Reversed])
+        .transform(|c| c.mk_red());
+
     let select = node("select").transform(|c| c.mk_green());
 
     node("cursor")
@@ -169,10 +220,10 @@ fn cursor() -> Node {
         .child(normal.clone())
         .child(insert.clone())
         .child(select.clone())
-        .child(node("match").transform(|c| c.pushback()))
+        .child(node("match").transform(|c| c.push_back()))
         .child(
             node("primary")
-                .transform(|c| c.pushup())
+                .transform(|c| c.pop_up())
                 .child(normal)
                 .child(insert)
                 .child(select),
@@ -181,8 +232,12 @@ fn cursor() -> Node {
 
 fn ui() -> Node {
     node("ui")
-        .transform(|chord| chord.browntown())
-        .child(node("background").child(node("separator")))
+        .transform(|_| brown())
+        .child(
+            node("background")
+                .transform(|_| normal())
+                .child(node("separator").transform(|_| brown().pop_up())),
+        )
         .child(
             node("cursorline")
                 .child(node("primary"))
@@ -196,7 +251,7 @@ fn ui() -> Node {
         .child(node("selection").child(node("primary")))
         .child(
             node("highlight")
-                .transform(|c| c.inverted().pushback())
+                .transform(|c| c.inverted().push_back())
                 .child(node("frameline")),
         )
         .child(
@@ -206,10 +261,19 @@ fn ui() -> Node {
         )
         .child(
             node("gutter")
-                .child(node("selected").child(node("virtual")))
+                .transform(|_| normal().faintly())
+                .child(
+                    node("selected")
+                        .transform(|c| c.pop_up().pin_bottom(c))
+                        .child(node("virtual")),
+                )
                 .child(node("virtual")),
         )
-        .child(node("linenr").child(node("selected")))
+        .child(
+            node("linenr")
+                .transform(|_| normal().faintly().pin_bottom(&normal()))
+                .child(node("selected").transform(|c| c.pop_up().pin_bottom(c))),
+        )
         .child(
             node("statusline")
                 .child(node("inactive"))
@@ -227,33 +291,46 @@ fn ui() -> Node {
         .child(node("popup").child(node("info")))
         .child(node("window"))
         .child(node("help"))
-        .child(node("picker").child(node("header").child(node("column").child(node("active")))))
+        .child(picker())
         .child(
             node("text")
-                .child(node("focus"))
-                .child(node("inactive"))
+                .child(node("focus").transform(|c| c.pop_up().pin_bottom(c)))
+                .child(node("inactive").transform(|c| c.push_back().pin_bottom(c)))
                 .child(node("info"))
-                .child(node("directory"))
-                .child(node("symlink")),
+                .child(node("directory").transform(|c| c.alt(1007)))
+                .child(node("symlink").transform(|c| c.alt(1001))),
         )
-        .child(
-            node("virtual")
-                .child(node("ruler"))
-                .child(node("whitespace"))
-                .child(node("indent-guide"))
-                .child(
-                    node("inlay-hint")
-                        .child(node("parameter"))
-                        .child(node("type")),
-                )
-                .child(node("wrap"))
-                .child(node("jump-label").modifiers(&[Bold])),
-        )
+        .child(virtualx())
         .child(
             node("menu")
-                .transform(|c| c.pushup())
-                .child(node("selected").transform(|c| c.inverted().pushback()))
+                .transform(|c| c.pop_up())
+                .child(node("selected").transform(|c| c.inverted().push_back()))
                 .child(node("scroll")),
         )
         .child(cursor())
+}
+
+fn picker() -> Node {
+    node("picker").transform(|c| c.pop_up()).child(
+        node("header").transform(|c| c.pop_up()).child(
+            node("column")
+                .transform(|c| c.pop_up())
+                .child(node("active").transform(|c| c.inverted().push_back().push_back())),
+        ),
+    )
+}
+
+fn virtualx() -> Node {
+    node("virtual")
+        .transform(|_| normal())
+        .child(node("ruler"))
+        .child(node("whitespace").transform(|c| c.faintly().pin_bottom(&normal())))
+        .child(node("indent-guide").transform(|c| c.mk_void().pin_bottom(&normal())))
+        .child(
+            node("inlay-hint")
+                .child(node("parameter"))
+                .child(node("type")),
+        )
+        .child(node("wrap"))
+        .child(node("jump-label").modifiers(&[Bold]))
 }

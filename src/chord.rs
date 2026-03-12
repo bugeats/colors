@@ -56,15 +56,34 @@ impl Chord {
         self.set_sat(self.sat() + 0.25)
     }
 
-    pub fn mk_blue(self) -> Self {
+    pub fn mk_void(self) -> Self {
         Self {
-            point: Vector3::new(self.point[0], self.point[1], 0.7),
+            point: Vector3::new(0.0, self.point[1], self.point[2]),
             ..self
         }
     }
 
+    pub fn mk_red(self) -> Self {
+        Self {
+            point: Vector3::new(self.point[0], self.point[1], 0.1),
+            ..self
+        }
+    }
+
+    pub fn mk_orange(self) -> Self {
+        self.mk_red().rotate(3.0 / 24.0)
+    }
+
+    pub fn mk_blue(self) -> Self {
+        self.mk_red().rotate(10.0 / 24.0)
+    }
+
     pub fn mk_green(self) -> Self {
         self.mk_red().rotate(5.0 / 24.0)
+    }
+
+    pub fn mk_yellow(self) -> Self {
+        self.mk_red().rotate(3.0 / 24.0)
     }
 
     pub fn sat(&self) -> f64 {
@@ -95,21 +114,8 @@ impl Chord {
         .pin_bottom(&self)
     }
 
-    pub fn mk_red(self) -> Self {
-        Self {
-            point: Vector3::new(self.point[0], self.point[1], 0.1),
-            ..self
-        }
-    }
-
-    pub fn browntown(self) -> Self {
-        let intr = self.interval + Vector3::new(-0.2, -0.1, 0.1);
-
-        self.mk_red()
-            .rotate(1.0 / 8.0)
-            .set_sat(self.sat() - 0.03)
-            .set_lit(self.lit() - 0.09)
-            .set_interval(intr)
+    pub fn shimmer(self) -> Self {
+        self.set_lit(self.lit() + 0.1)
     }
 
     pub fn inverted(self) -> Self {
@@ -119,6 +125,12 @@ impl Chord {
         }
     }
 
+    pub fn faintly(self) -> Self {
+        self.mix(&self.mk_red().mk_saturated())
+            .set_lit(self.lit() * 0.46)
+            .pin_bottom(&self)
+    }
+
     pub fn pin_bottom(self, other: &Chord) -> Self {
         Self {
             interval: 2.0 * (self.point - other.bottom()),
@@ -126,12 +138,36 @@ impl Chord {
         }
     }
 
-    pub fn pushback(self) -> Self {
-        self.set_lit(self.lit() * 3.0 / 4.0)
+    fn push(self, scalar: f64) -> Self {
+        self.set_lit(self.lit() * scalar)
+            .set_interval(self.interval * scalar)
     }
 
-    pub fn pushup(self) -> Self {
-        self.set_lit(self.lit() * 5.0 / 4.0)
+    pub fn push_back(self) -> Self {
+        self.push(5.0 / 6.0)
+    }
+
+    pub fn pop_up(self) -> Self {
+        self.push(7.0 / 6.0)
+    }
+
+    pub fn alt(self, seed: u64) -> Self {
+        self.mix(&self.mk_saturated().mk_green())
+            .mk_bamp(seed)
+            .mk_bamp(seed + 1)
+            .mk_bamp(seed + 2)
+            .pin_bottom(&self)
+    }
+
+    pub fn mix(self, other: &Chord) -> Self {
+        let point = (self.point + other.point) / 2.0;
+        let interval = (self.interval + other.interval) / 2.0;
+
+        Self { point, interval }
+    }
+
+    pub fn hue(self) -> f64 {
+        self.point[2]
     }
 
     pub fn set_hue(self, target_hue: f64) -> Self {
