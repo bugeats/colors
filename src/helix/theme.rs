@@ -1,226 +1,16 @@
-use serde::ser::{SerializeMap, Serializer};
-use serde::Serialize;
-
-use crate::backends::ThemeRgb;
+use super::node::{node, Node};
+use super::style::{Modifier, UnderlineStyle};
 use crate::chord::Chord;
 
+use nalgebra::Vector3;
 use Modifier::*;
 use UnderlineStyle::*;
 
-#[derive(Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
-enum Modifier {
-    Bold,
-    Dim,
-    Italic,
-    Underlined,
-    SlowBlink,
-    RapidBlink,
-    Reversed,
-    Hidden,
-    CrossedOut,
-}
-
-#[derive(Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
-#[allow(dead_code)]
-enum UnderlineStyle {
-    Line,
-    Curl,
-    Dashed,
-    Dotted,
-    DoubleLine,
-}
-
-#[derive(Clone, Copy, Default)]
-enum Underline {
-    #[default]
-    None,
-    Styled {
-        color: Chord,
-        style: UnderlineStyle,
-    },
-}
-
-impl Underline {
-    fn is_none(&self) -> bool {
-        matches!(self, Underline::None)
-    }
-
-    /// Child overrides parent; None inherits.
-    fn merge(self, child: Self) -> Self {
-        if child.is_none() {
-            self
-        } else {
-            child
-        }
-    }
-}
-
-impl Serialize for Underline {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self {
-            Underline::None => serializer.serialize_none(),
-
-            Underline::Styled { color, style } => {
-                let mut map = serializer.serialize_map(None)?;
-
-                if !color.is_default() {
-                    map.serialize_entry("color", &ThemeRgb::from(color.middle()).to_string())?;
-                }
-
-                map.serialize_entry("style", style)?;
-                map.end()
-            }
-        }
-    }
-}
-
-#[derive(Clone, Copy, Default)]
-struct Style {
-    color: Chord,
-    underline: Underline,
-    modifiers: &'static [Modifier],
-}
-
-impl Style {
-    /// Child overrides parent per-field; empty child fields inherit.
-    fn merge(self, child: Self) -> Self {
-        Self {
-            color: if child.color.is_default() {
-                self.color
-            } else {
-                child.color
-            },
-            underline: self.underline.merge(child.underline),
-            modifiers: if child.modifiers.is_empty() {
-                self.modifiers
-            } else {
-                child.modifiers
-            },
-        }
-    }
-}
-
-impl Serialize for Style {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let fg = ThemeRgb::from(self.color.middle()).to_string();
-        let bg = ThemeRgb::from(self.color.bottom()).to_string();
-
-        let field_count =
-            2 + (!self.underline.is_none()) as usize + (!self.modifiers.is_empty()) as usize;
-
-        let mut map = serializer.serialize_map(Some(field_count))?;
-        map.serialize_entry("fg", fg.as_str())?;
-        map.serialize_entry("bg", bg.as_str())?;
-
-        if !self.underline.is_none() {
-            map.serialize_entry("underline", &self.underline)?;
-        }
-
-        if !self.modifiers.is_empty() {
-            map.serialize_entry("modifiers", self.modifiers)?;
-        }
-
-        map.end()
-    }
-}
-
-struct Node {
-    name: &'static str,
-    style: Style,
-    children: Vec<Node>,
-}
-
-impl Node {
-    fn child(mut self, node: Node) -> Self {
-        self.children.push(node);
-        self
-    }
-
-    fn color(mut self, color: Chord) -> Self {
-        self.style.color = color;
-        self
-    }
-
-    fn underline(mut self, color: Chord, style: UnderlineStyle) -> Self {
-        self.style.underline = Underline::Styled { color, style };
-        self
-    }
-
-    fn modifiers(mut self, modifiers: &'static [Modifier]) -> Self {
-        self.style.modifiers = modifiers;
-        self
-    }
-}
-
-fn node(name: &'static str) -> Node {
-    Node {
-        name,
-        style: Style::default(),
-        children: Vec::new(),
-    }
-}
-
-fn fmt_inline(value: &toml::Value) -> String {
-    match value {
-        toml::Value::Table(table) => {
-            let entries: Vec<_> = table
-                .iter()
-                .map(|(k, v)| format!("{k} = {}", fmt_inline(v)))
-                .collect();
-            format!("{{ {} }}", entries.join(", "))
-        }
-
-        toml::Value::Array(arr) => {
-            let items: Vec<_> = arr.iter().map(fmt_inline).collect();
-            format!("[{}]", items.join(", "))
-        }
-
-        other => other.to_string(),
-    }
-}
-
-fn toml_key(key: &str) -> String {
-    if key.contains('.') {
-        format!("\"{key}\"")
-    } else {
-        key.to_string()
-    }
-}
-
-fn emit_scope(path: &str, style: &Style) {
-    let value = toml::Value::try_from(style).unwrap();
-    println!("{} = {}", toml_key(path), fmt_inline(&value));
-}
-
-fn emit_node(prefix: &str, node: &Node, inherited: Style) {
-    let path = if node.name.is_empty() {
-        prefix.to_string()
-    } else if prefix.is_empty() {
-        node.name.to_string()
-    } else {
-        format!("{prefix}.{}", node.name)
-    };
-
-    let cascaded = inherited.merge(node.style);
-
-    if !node.name.is_empty() {
-        emit_scope(&path, &cascaded);
-    }
-
-    for child in &node.children {
-        emit_node(&path, child, cascaded);
-    }
-}
-
-pub fn print_helix() {
-    emit_node("", &theme(), Style::default());
-}
-
-fn theme() -> Node {
+pub(super) fn theme() -> Node {
     node("")
+        .transform(|_| {
+            Chord::from(Vector3::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03])
+        })
         .child(node("attribute"))
         .child(
             node("type")
@@ -264,6 +54,7 @@ fn theme() -> Node {
         )
         .child(
             node("keyword")
+                .transform(|c| c.mk_green())
                 .child(
                     node("control")
                         .child(node("conditional"))
@@ -360,12 +151,14 @@ fn theme() -> Node {
         .child(node("hint"))
         .child(
             node("ui")
+                .transform(|chord| chord.mk_red())
                 .child(node("background").child(node("separator")))
                 .child(
                     node("cursor")
+                        .transform(|chord| chord.mk_blue())
                         .modifiers(&[Reversed])
                         .child(node("normal"))
-                        .child(node("insert"))
+                        .child(node("insert").transform(|chord| chord.mk_green()))
                         .child(node("select"))
                         .child(node("match"))
                         .child(

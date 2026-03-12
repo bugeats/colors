@@ -10,9 +10,14 @@ Three modules with hard boundaries:
 
 - **Backends** (`src/backends.rs`) — `ThemeRgb` converts `Color` to sRGB bytes via `palette` crate. `From<Color>` for conversion, `Display` for hex output, `From<ThemeRgb> for anstyle::Color` for terminal styling.
 
-- **Helix** (`src/helix.rs`) — `--helix` backend. `Node` carries its own `name: &'static str` and `style: Style`. Builder API: `node("name")` (free fn), `.child(node)`, `.color(chord)`, `.underline(chord, style)`, `.modifiers()`. `Style` has `color: Chord` (not optional — default means "inherit"), `underline: Underline`, `modifiers: &'static [Modifier]`. Cascading `Style::merge` (child overrides parent per-field). `Underline` enum (`None`/`Styled { color: Chord, style }`), `Modifier` and `UnderlineStyle` enums cover the full Helix spec. Serialization always emits `fg` (from `middle()`) and `bg` (from `bottom()`) via `ThemeRgb` hex; every scope gets a line. `theme()` returns a single nameless root `Node` that wraps the tree — its style cascades to all children but produces no output line. `emit_node` depth-first walker cascades inherited styles and serializes to inline TOML. Scope inventory in `docs/helix-scopes.md`.
+- **Helix** (`src/helix/`) — `--helix` backend, four submodules:
+  - `style.rs` — `Modifier`, `UnderlineStyle`, `Underline`, `Style` enums/structs with cascading merge and Serde serialization. `Style` fields: `color: Chord` (default = inherit), `underline: Underline`, `modifiers: &'static [Modifier]`. Serialization emits `fg`/`bg` hex via `ThemeRgb`.
+  - `node.rs` — `Node { name, style, children, transform }` tree type. `transform` is `Box<dyn Fn(&Chord) -> Chord>`, defaulting to `Clone::clone`. Builder API: `node("name")`, `.child()`, `.color()`, `.transform()`, `.underline()`, `.modifiers()`. `.color()` sets an absolute Chord; `.transform()` takes `impl Fn(&Chord) -> Chord` to derive from inherited.
+  - `emit.rs` — depth-first walker `emit_node` cascades inherited styles, applies node transforms, and serializes each scope as inline TOML. Cascade order: merge → transform → emit + propagate. Accumulates an ancestry chain of `(&str, Style)` pairs so inspect mode can color each path segment independently. Optional `inspect: Option<anstyle::Style>` threads a base terminal style through the walk. Optional `filter: Option<&Regex>` (`fancy-regex`) matches against the full dot-joined scope path before emitting; tree traversal continues regardless so children of non-matching nodes can still match. Helpers: `scope_path`, `fmt_inline`, `emit_scope`.
+  - `theme.rs` — `theme()` returns a nameless root `Node` wrapping the full Helix scope tree. Scope inventory in `docs/helix-scopes.md`.
+  - `mod.rs` — `print_helix(inspect: bool, filter: Option<&str>)` entry point. Compiles the filter regex once and passes `&Regex` through the tree walk. When `inspect`, computes root cascade into an `anstyle::Style` (bg from `bottom()`, fg from `middle()`).
 
-- `src/main.rs` — palette definitions (two root Chords from Color, all others derived via Chord operations), output dispatch (`--json`, `--helix`, default table), CLI entry point
+- `src/main.rs` — palette definitions (two root Chords from Color, all others derived via Chord operations), output dispatch (`--json`, `--helix [--inspect] [--filter <regex>]`, default table), CLI entry point
 - `flake.nix` — builds the binary and a `json` derivation that captures `--json` output
 
 ## Build
@@ -21,6 +26,4 @@ Three modules with hard boundaries:
 
 ## Current Focus
 
-Style uses `Chord` for all color data; string placeholders are gone. Every scope emits `fg` + `bg` hex (currently `#000000` from default Chord). Connecting palette Chords to the theme tree is the next step — wire `.color(chord)` calls in `theme()` using Chords defined in `main.rs`.
-
-Terminal preview table uses `anstyle::Style` for typed ANSI output.
+`--filter <regex>` landed for helix output. Wiring `.color()` and `.transform()` calls in `theme()` using palette Chords from `main.rs`.

@@ -52,6 +52,27 @@ impl Chord {
         }
     }
 
+    pub fn mk_blue(self) -> Self {
+        Self {
+            point: Vector3::new(self.point[0], self.point[1], 0.7),
+            ..self
+        }
+    }
+
+    pub fn mk_green(self) -> Self {
+        Self {
+            point: Vector3::new(self.point[0], self.point[1], 0.5),
+            ..self
+        }
+    }
+
+    pub fn mk_red(self) -> Self {
+        Self {
+            point: Vector3::new(self.point[0], self.point[1], 0.1),
+            ..self
+        }
+    }
+
     pub fn set_hue(self, target_hue: f64) -> Self {
         Self {
             point: Vector3::new(self.point[0], self.point[1], target_hue),

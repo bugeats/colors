@@ -10,3 +10,4 @@ toml = { version = "0.8", features = ["preserve_order"] }
 palette = { version = "0.7", default-features = false, features = ["std"] }
 nalgebra = "0.33"
 anstyle = "1"
+fancy-regex = "0.14"

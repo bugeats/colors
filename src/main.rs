@@ -178,10 +178,17 @@ fn print_table(palette: &[(&str, Color)]) {
 fn main() {
     let palette = palette();
 
-    if std::env::args().any(|a| a == "--json") {
+    let args: Vec<_> = std::env::args().collect();
+
+    if args.iter().any(|a| a == "--json") {
         print_json(&palette);
-    } else if std::env::args().any(|a| a == "--helix") {
-        helix::print_helix();
+    } else if args.iter().any(|a| a == "--helix") {
+        let inspect = args.iter().any(|a| a == "--inspect");
+        let filter = args
+            .iter()
+            .position(|a| a == "--filter")
+            .map(|i| args[i + 1].as_str());
+        helix::print_helix(inspect, filter);
     } else {
         print_table(&palette);
     }
