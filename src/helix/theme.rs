@@ -1,6 +1,7 @@
 use super::node::{Node, node};
 use super::style::{Modifier, UnderlineStyle};
 use crate::chord::Chord;
+use crate::helix::theme::palette::punc;
 
 use Modifier::*;
 use UnderlineStyle::*;
@@ -11,6 +12,10 @@ mod palette {
 
     pub fn normal() -> Chord {
         Chord::from(Vector3::new(0.80, 0.05, 0.20)).set_interval([1.11, 0.05, -0.03].into())
+    }
+
+    pub fn punc() -> Chord {
+        normal().mk_red().shift_sat(0.2).push_back().push_back()
     }
 
     pub fn brown() -> Chord {
@@ -85,20 +90,6 @@ pub(super) fn theme() -> Node {
                 .child(node("other").child(node("member").child(node("private")))),
         )
         .child(node("label"))
-        .child(
-            node("punctuation")
-                .transform(|c| {
-                    c.faintly()
-                        .pop_up()
-                        .pop_up()
-                        .pop_up()
-                        .mk_saturated()
-                        .pin_bottom(c)
-                })
-                .child(node("delimiter"))
-                .child(node("bracket"))
-                .child(node("special")),
-        )
         .child(keyword)
         .child(node("operator"))
         .child(
@@ -110,7 +101,7 @@ pub(super) fn theme() -> Node {
                 .child(node("special")),
         )
         .child(node("tag").child(node("builtin")))
-        .child(node("namespace"))
+        .child(node("namespace").modifiers(&[Modifier::Bold]))
         .child(node("special"))
         .child(
             node("comment")
@@ -133,6 +124,13 @@ pub(super) fn theme() -> Node {
         .child(node("info"))
         .child(node("hint"))
         .child(ui())
+        .child(
+            node("punctuation")
+                .transform(|c| punc().pin_bottom(c))
+                .child(node("delimiter"))
+                .child(node("bracket"))
+                .child(node("special")),
+        )
         .child(
             node("diff")
                 .transform(|c| {
@@ -229,11 +227,9 @@ fn cursor() -> Node {
         .child(norm.clone())
         .child(insert.clone())
         .child(select.clone())
-        .child(node("match").transform(|c| {
-            c.candy()
-                .mk_red()
-                .pop_up()
-                .pop_up()
+        .child(node("match").transform(|_| {
+            palette::punc()
+                .candy()
                 .pop_up()
                 .pin_bottom(&palette::normal())
         }))

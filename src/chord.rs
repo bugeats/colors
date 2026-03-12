@@ -1,5 +1,7 @@
 use nalgebra::Vector3;
 
+const PUSH_SCALAR: f64 = 7.0 / 8.0;
+
 pub type Color = Vector3<f64>;
 
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -43,6 +45,10 @@ impl Chord {
             point: Vector3::new(target_lit, self.point[1], self.point[2]),
             ..self
         }
+    }
+
+    pub fn shift_sat(&self, nudge: f64) -> Self {
+        self.set_sat(self.sat() + nudge)
     }
 
     pub fn set_sat(self, target_sat: f64) -> Self {
@@ -145,17 +151,15 @@ impl Chord {
         }
     }
 
-    fn push(self, scalar: f64) -> Self {
-        self.set_lit(self.lit() * scalar)
-            .set_interval(self.interval * scalar)
-    }
-
     pub fn push_back(self) -> Self {
-        self.push(5.0 / 6.0)
+        self.set_lit(self.lit() * PUSH_SCALAR)
+            .set_interval(self.interval / PUSH_SCALAR)
     }
 
     pub fn pop_up(self) -> Self {
-        self.push(7.0 / 6.0)
+        let scalar = 1.0 + (1.0 - PUSH_SCALAR);
+        self.set_lit(self.lit() * scalar)
+            .set_interval(self.interval * scalar)
     }
 
     pub fn alt(self, seed: u64) -> Self {
