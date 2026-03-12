@@ -41,8 +41,10 @@ fn emit_scope(
     match inspect {
         Some(base) => {
             let fg = |s: &Style| {
-                let rgb = ThemeRgb::from(s.color.middle());
-                base.fg_color(Some(rgb.into()))
+                let middle = ThemeRgb::from(s.color.middle());
+                let bottom = ThemeRgb::from(s.color.bottom());
+                base.fg_color(Some(middle.into()))
+                    .bg_color(Some(bottom.into()))
             };
 
             let name_ansi = fg(style);

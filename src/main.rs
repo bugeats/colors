@@ -6,10 +6,10 @@ use backends::ThemeRgb;
 use chord::{Chord, Color};
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 fn normal() -> Chord {
-    Chord::from(Color::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03])
+    Chord::from(Color::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
 }
 
 fn palette() -> Vec<(&'static str, Color)> {
@@ -21,7 +21,7 @@ fn palette() -> Vec<(&'static str, Color)> {
     let level_1 = normal
         .set_lit(normal.get_lit() - (spread * 4.5))
         .set_sat(0.05)
-        .set_interval([spread * 3.0, 0.0, 0.0]);
+        .set_interval([spread * 3.0, 0.0, 0.0].into());
 
     let level_2 = level_1.set_lit(level_1.get_lit() + spread);
     let level_3 = level_2.set_lit(level_2.get_lit() + spread);
@@ -30,7 +30,7 @@ fn palette() -> Vec<(&'static str, Color)> {
         .set_lit(normal.get_lit() - (level_2.get_lit() - level_1.get_lit()))
         .set_sat(0.2)
         .set_hue(0.08)
-        .set_interval([0.17, 0.1, -0.12]);
+        .set_interval([0.17, 0.1, -0.12].into());
     let ansi_yellow = ansi_red.rotate(1.0 / 6.0);
     let ansi_green = ansi_red.rotate(2.0 / 6.0);
     let ansi_cyan = ansi_red.rotate(3.0 / 6.0);
@@ -171,7 +171,9 @@ fn print_table(palette: &[(&str, Color)]) {
         let rgb = ThemeRgb::from(*color);
         let swatch = base.fg_color(Some(rgb.into()));
 
-        print!("{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK}{base} {rgb}    \n{base:#}");
+        print!(
+            "{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK}{base} {rgb}    \n{base:#}"
+        );
     }
 }
 

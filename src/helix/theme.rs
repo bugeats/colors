@@ -53,11 +53,11 @@ pub(super) fn theme() -> Node {
         );
 
     let ui = node("ui")
-        .transform(|chord| chord.mk_red())
+        .transform(|chord| chord.mk_saturated().browntown())
         .child(node("background").child(node("separator")))
         .child(
             node("cursor")
-                .transform(|chord| chord.mk_blue())
+                .transform(|chord| chord.mk_blue().inverted().pushback())
                 .modifiers(&[Reversed])
                 .child(node("normal"))
                 .child(node("insert").transform(|chord| chord.mk_green()))
@@ -81,7 +81,11 @@ pub(super) fn theme() -> Node {
                 .child(node("secondary")),
         )
         .child(node("selection").child(node("primary")))
-        .child(node("highlight").child(node("frameline")))
+        .child(
+            node("highlight")
+                .transform(|c| c.inverted().pushback())
+                .child(node("frameline")),
+        )
         .child(
             node("debug")
                 .child(node("breakpoint"))
@@ -132,10 +136,15 @@ pub(super) fn theme() -> Node {
                 .child(node("wrap"))
                 .child(node("jump-label").modifiers(&[Bold])),
         )
-        .child(node("menu").child(node("selected")).child(node("scroll")));
+        .child(
+            node("menu")
+                .transform(|c| c.pushup())
+                .child(node("selected").transform(|c| c.inverted().pushback()))
+                .child(node("scroll")),
+        );
 
     let keyword = node("keyword")
-        .transform(|c| c.mk_saturated().mk_green())
+        .transform(|c| c.mk_saturated().mk_green().pin_bottom(c))
         .child(
             node("control")
                 .child(node("conditional"))
@@ -156,8 +165,10 @@ pub(super) fn theme() -> Node {
 
     let root = node("")
         .transform(|_| {
-            Chord::from(Vector3::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03])
+            Chord::from(Vector3::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
         })
+        .child(ui)
+        .child(markup)
         .child(node("attribute"))
         .child(node("tabstop"))
         .child(
@@ -212,7 +223,6 @@ pub(super) fn theme() -> Node {
         .child(node("tag").child(node("builtin")))
         .child(node("namespace"))
         .child(node("special"))
-        .child(markup)
         .child(
             node("diff")
                 .child(node("plus").child(node("gutter")))
@@ -236,8 +246,7 @@ pub(super) fn theme() -> Node {
         .child(node("warning"))
         .child(node("error"))
         .child(node("info"))
-        .child(node("hint"))
-        .child(ui);
+        .child(node("hint"));
 
     root
 }

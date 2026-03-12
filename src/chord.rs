@@ -67,12 +67,16 @@ impl Chord {
         self.point[1]
     }
 
+    pub fn lit(&self) -> f64 {
+        self.point[0]
+    }
+
     pub fn mk_saturated(self) -> Self {
         self.set_sat(self.sat() + 0.14)
     }
 
     pub fn mk_bamp(self, seed: u64) -> Self {
-        const AMP: f64 = 0.05;
+        const AMP: f64 = 0.02;
 
         let shift = Color::new(
             noise(seed, 0) * AMP,
@@ -93,6 +97,38 @@ impl Chord {
         }
     }
 
+    pub fn browntown(self) -> Self {
+        let intr = self.interval + Vector3::new(-0.2, -0.1, 0.1);
+
+        self.mk_red()
+            .rotate(1.0 / 8.0)
+            .set_sat(self.sat() - 0.13)
+            .set_lit(self.lit() - 0.09)
+            .set_interval(intr)
+    }
+
+    pub fn inverted(self) -> Self {
+        Self {
+            point: self.bottom(),
+            interval: -self.interval,
+        }
+    }
+
+    pub fn pin_bottom(self, other: &Chord) -> Self {
+        Self {
+            interval: 2.0 * (self.point - other.bottom()),
+            ..self
+        }
+    }
+
+    pub fn pushback(self) -> Self {
+        self.set_lit(self.lit() * 3.0 / 4.0)
+    }
+
+    pub fn pushup(self) -> Self {
+        self.set_lit(self.lit() * 5.0 / 4.0)
+    }
+
     pub fn set_hue(self, target_hue: f64) -> Self {
         Self {
             point: Vector3::new(self.point[0], self.point[1], target_hue),
@@ -100,7 +136,7 @@ impl Chord {
         }
     }
 
-    pub fn set_interval<T: Into<Vector3<f64>>>(self, interval: T) -> Self {
+    pub fn set_interval(self, interval: Vector3<f64>) -> Self {
         Self {
             interval: interval.into(),
             ..self
