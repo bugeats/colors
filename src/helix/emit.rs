@@ -40,23 +40,23 @@ fn emit_scope(
 
     match inspect {
         Some(base) => {
-            let fg = |s: &Style| {
+            let paint = |s: &Style| {
                 let middle = ThemeRgb::from(s.color.middle());
                 let bottom = ThemeRgb::from(s.color.bottom());
                 base.fg_color(Some(middle.into()))
                     .bg_color(Some(bottom.into()))
             };
 
-            let name_ansi = fg(style);
+            let name_ansi = paint(style);
 
             if ancestors.is_empty() {
                 print!("{name_ansi}{name}{name_ansi:#}");
             } else {
-                let first_ansi = fg(&ancestors[0].1);
+                let first_ansi = paint(&ancestors[0].1);
                 print!("{first_ansi}\"{}{first_ansi:#}", ancestors[0].0);
 
                 for (seg_name, seg_style) in &ancestors[1..] {
-                    let seg_ansi = fg(seg_style);
+                    let seg_ansi = paint(seg_style);
                     print!("{seg_ansi}.{seg_name}{seg_ansi:#}");
                 }
 

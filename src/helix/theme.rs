@@ -52,24 +52,137 @@ pub(super) fn theme() -> Node {
                 .child(node("hover")),
         );
 
-    let ui = node("ui")
-        .transform(|chord| chord.mk_saturated().browntown())
-        .child(node("background").child(node("separator")))
+    let keyword = node("keyword")
+        .transform(|c| c.mk_saturated().mk_green().pin_bottom(c))
         .child(
-            node("cursor")
-                .transform(|chord| chord.mk_blue().inverted().pushback())
-                .modifiers(&[Reversed])
-                .child(node("normal"))
-                .child(node("insert").transform(|chord| chord.mk_green()))
-                .child(node("select"))
-                .child(node("match"))
+            node("control")
+                .child(node("conditional"))
+                .child(node("repeat"))
+                .child(node("import"))
+                .child(node("return"))
+                .child(node("exception")),
+        )
+        .child(node("operator"))
+        .child(node("directive"))
+        .child(node("function"))
+        .child(
+            node("storage")
+                .transform(|c| c.mk_bamp(5))
+                .child(node("type").transform(|c| c.mk_bamp(12)))
+                .child(node("modifier").transform(|c| c.mk_bamp(7))),
+        );
+
+    node("")
+        .transform(|_| {
+            Chord::from(Vector3::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
+        })
+        .child(markup)
+        .child(node("attribute"))
+        .child(node("tabstop"))
+        .child(
+            node("type")
+                .child(node("builtin"))
+                .child(node("parameter"))
+                .child(node("enum").child(node("variant"))),
+        )
+        .child(node("constructor"))
+        .child(
+            node("constant")
+                .child(node("builtin").child(node("boolean")))
+                .child(node("character").child(node("escape")))
+                .child(node("numeric").child(node("integer")).child(node("float"))),
+        )
+        .child(
+            node("string").child(node("regexp")).child(
+                node("special")
+                    .child(node("path"))
+                    .child(node("url"))
+                    .child(node("symbol")),
+            ),
+        )
+        .child(
+            node("variable")
+                .child(node("builtin"))
+                .child(node("parameter"))
+                .child(node("other").child(node("member").child(node("private")))),
+        )
+        .child(node("label"))
+        .child(
+            node("punctuation")
+                .child(node("delimiter"))
+                .child(node("bracket"))
+                .child(node("special")),
+        )
+        .child(keyword)
+        .child(node("operator"))
+        .child(
+            node("function")
+                .child(node("builtin"))
+                .child(node("method").child(node("private")))
+                .child(node("macro"))
+                .child(node("special")),
+        )
+        .child(node("tag").child(node("builtin")))
+        .child(node("namespace"))
+        .child(node("special"))
+        .child(
+            node("comment")
+                .transform(|c| c.desaturated().pushback().pin_bottom(c))
+                .child(node("line").child(node("documentation")))
+                .child(node("block").child(node("documentation")))
+                .child(node("unused")),
+        )
+        .child(
+            node("diff")
+                .child(node("plus").child(node("gutter")))
+                .child(node("minus").child(node("gutter")))
                 .child(
-                    node("primary")
-                        .child(node("normal"))
-                        .child(node("insert"))
-                        .child(node("select")),
+                    node("delta")
+                        .child(node("moved"))
+                        .child(node("conflict"))
+                        .child(node("gutter")),
                 ),
         )
+        .child(
+            node("diagnostic")
+                .child(node("hint").underline(Chord::default(), Curl))
+                .child(node("info").underline(Chord::default(), Curl))
+                .child(node("warning").underline(Chord::default(), Curl))
+                .child(node("error").underline(Chord::default(), Curl))
+                .child(node("unnecessary").modifiers(&[Dim]))
+                .child(node("deprecated").modifiers(&[CrossedOut])),
+        )
+        .child(node("warning"))
+        .child(node("error"))
+        .child(node("info"))
+        .child(node("hint"))
+        .child(ui())
+}
+
+fn cursor() -> Node {
+    let normal = node("normal");
+    let insert = node("insert").transform(|c| c.mk_red());
+    let select = node("select").transform(|c| c.mk_green());
+
+    node("cursor")
+        .transform(|chord| chord.mk_blue().candy().inverted())
+        .child(normal.clone())
+        .child(insert.clone())
+        .child(select.clone())
+        .child(node("match").transform(|c| c.pushback()))
+        .child(
+            node("primary")
+                .transform(|c| c.pushup())
+                .child(normal)
+                .child(insert)
+                .child(select),
+        )
+}
+
+fn ui() -> Node {
+    node("ui")
+        .transform(|chord| chord.browntown())
+        .child(node("background").child(node("separator")))
         .child(
             node("cursorline")
                 .child(node("primary"))
@@ -141,112 +254,6 @@ pub(super) fn theme() -> Node {
                 .transform(|c| c.pushup())
                 .child(node("selected").transform(|c| c.inverted().pushback()))
                 .child(node("scroll")),
-        );
-
-    let keyword = node("keyword")
-        .transform(|c| c.mk_saturated().mk_green().pin_bottom(c))
-        .child(
-            node("control")
-                .child(node("conditional"))
-                .child(node("repeat"))
-                .child(node("import"))
-                .child(node("return"))
-                .child(node("exception")),
         )
-        .child(node("operator"))
-        .child(node("directive"))
-        .child(node("function"))
-        .child(
-            node("storage")
-                .transform(|c| c.mk_bamp(5))
-                .child(node("type").transform(|c| c.mk_bamp(12)))
-                .child(node("modifier").transform(|c| c.mk_bamp(7))),
-        );
-
-    let root = node("")
-        .transform(|_| {
-            Chord::from(Vector3::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
-        })
-        .child(ui)
-        .child(markup)
-        .child(node("attribute"))
-        .child(node("tabstop"))
-        .child(
-            node("type")
-                .child(node("builtin"))
-                .child(node("parameter"))
-                .child(node("enum").child(node("variant"))),
-        )
-        .child(node("constructor"))
-        .child(
-            node("constant")
-                .child(node("builtin").child(node("boolean")))
-                .child(node("character").child(node("escape")))
-                .child(node("numeric").child(node("integer")).child(node("float"))),
-        )
-        .child(
-            node("string").child(node("regexp")).child(
-                node("special")
-                    .child(node("path"))
-                    .child(node("url"))
-                    .child(node("symbol")),
-            ),
-        )
-        .child(
-            node("comment")
-                .child(node("line").child(node("documentation")))
-                .child(node("block").child(node("documentation")))
-                .child(node("unused")),
-        )
-        .child(
-            node("variable")
-                .child(node("builtin"))
-                .child(node("parameter"))
-                .child(node("other").child(node("member").child(node("private")))),
-        )
-        .child(node("label"))
-        .child(
-            node("punctuation")
-                .child(node("delimiter"))
-                .child(node("bracket"))
-                .child(node("special")),
-        )
-        .child(keyword)
-        .child(node("operator"))
-        .child(
-            node("function")
-                .child(node("builtin"))
-                .child(node("method").child(node("private")))
-                .child(node("macro"))
-                .child(node("special")),
-        )
-        .child(node("tag").child(node("builtin")))
-        .child(node("namespace"))
-        .child(node("special"))
-        .child(
-            node("diff")
-                .child(node("plus").child(node("gutter")))
-                .child(node("minus").child(node("gutter")))
-                .child(
-                    node("delta")
-                        .child(node("moved"))
-                        .child(node("conflict"))
-                        .child(node("gutter")),
-                ),
-        )
-        .child(
-            node("diagnostic")
-                .child(node("hint").underline(Chord::default(), Curl))
-                .child(node("info").underline(Chord::default(), Curl))
-                .child(node("warning").underline(Chord::default(), Curl))
-                .child(node("error").underline(Chord::default(), Curl))
-                .child(node("unnecessary").modifiers(&[Dim]))
-                .child(node("deprecated").modifiers(&[CrossedOut])),
-        )
-        .child(node("warning"))
-        .child(node("error"))
-        .child(node("info"))
-        .child(node("hint"));
-
-    root
+        .child(cursor())
 }

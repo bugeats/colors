@@ -52,6 +52,10 @@ impl Chord {
         }
     }
 
+    pub fn candy(self) -> Self {
+        self.set_sat(self.sat() + 0.25)
+    }
+
     pub fn mk_blue(self) -> Self {
         Self {
             point: Vector3::new(self.point[0], self.point[1], 0.7),
@@ -76,7 +80,7 @@ impl Chord {
     }
 
     pub fn mk_bamp(self, seed: u64) -> Self {
-        const AMP: f64 = 0.02;
+        const AMP: f64 = 0.03;
 
         let shift = Color::new(
             noise(seed, 0) * AMP,
@@ -88,6 +92,7 @@ impl Chord {
             point: self.point + shift,
             ..self
         }
+        .pin_bottom(&self)
     }
 
     pub fn mk_red(self) -> Self {
@@ -102,7 +107,7 @@ impl Chord {
 
         self.mk_red()
             .rotate(1.0 / 8.0)
-            .set_sat(self.sat() - 0.13)
+            .set_sat(self.sat() - 0.03)
             .set_lit(self.lit() - 0.09)
             .set_interval(intr)
     }

@@ -1,13 +1,14 @@
-use std::sync::atomic::{AtomicU16, AtomicU64, AtomicUsize};
+use std::sync::{atomic::AtomicU64, Arc};
 
 use super::style::{Modifier, Style, Underline, UnderlineStyle};
 use crate::chord::Chord;
 
+#[derive(Clone)]
 pub(super) struct Node {
     pub(super) name: &'static str,
     pub(super) style: Style,
     pub(super) children: Vec<Node>,
-    pub(super) transform: Box<dyn Fn(&Chord) -> Chord>,
+    pub(super) transform: Arc<dyn Fn(&Chord) -> Chord>,
 }
 
 impl Node {
@@ -17,7 +18,7 @@ impl Node {
     }
 
     pub(super) fn transform(mut self, f: impl Fn(&Chord) -> Chord + 'static) -> Self {
-        self.transform = Box::new(f);
+        self.transform = Arc::new(f);
         self
     }
 
@@ -39,7 +40,7 @@ pub(super) fn node(name: &'static str) -> Node {
         name,
         style: Style::default(),
         children: Vec::new(),
-        transform: Box::new(|c| {
+        transform: Arc::new(|c| {
             let seed = BAMP.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             c.clone().mk_bamp(seed)
         }),
