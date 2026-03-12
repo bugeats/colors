@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU16, AtomicU64, AtomicUsize};
+
 use super::style::{Modifier, Style, Underline, UnderlineStyle};
 use crate::chord::Chord;
 
@@ -30,11 +32,16 @@ impl Node {
     }
 }
 
+static BAMP: AtomicU64 = AtomicU64::new(120);
+
 pub(super) fn node(name: &'static str) -> Node {
     Node {
         name,
         style: Style::default(),
         children: Vec::new(),
-        transform: Box::new(Clone::clone),
+        transform: Box::new(|c| {
+            let seed = BAMP.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            c.clone().mk_bamp(seed)
+        }),
     }
 }
