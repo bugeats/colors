@@ -1,10 +1,10 @@
-use super::node::{node, Node};
+use super::node::{Node, node};
 use super::style::{Modifier, UnderlineStyle};
 use crate::chord::Chord;
 
-use nalgebra::Vector3;
 use Modifier::*;
 use UnderlineStyle::*;
+use nalgebra::Vector3;
 
 pub(super) fn theme() -> Node {
     node("")
@@ -54,19 +54,25 @@ pub(super) fn theme() -> Node {
         )
         .child(
             node("keyword")
-                .transform(|c| c.mk_green())
+                .transform(|c| c.mk_saturated().mk_green())
                 .child(
                     node("control")
+                        .transform(|c| c.mk_bamp(1))
                         .child(node("conditional"))
                         .child(node("repeat"))
                         .child(node("import"))
                         .child(node("return"))
                         .child(node("exception")),
                 )
-                .child(node("operator"))
-                .child(node("directive"))
-                .child(node("function"))
-                .child(node("storage").child(node("type")).child(node("modifier"))),
+                .child(node("operator").transform(|c| c.mk_bamp(2)))
+                .child(node("directive").transform(|c| c.mk_bamp(3)))
+                .child(node("function").transform(|c| c.mk_bamp(4)))
+                .child(
+                    node("storage")
+                        .transform(|c| c.mk_bamp(5))
+                        .child(node("type").transform(|c| c.mk_bamp(12)))
+                        .child(node("modifier").transform(|c| c.mk_bamp(7))),
+                ),
         )
         .child(node("operator"))
         .child(

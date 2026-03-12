@@ -60,8 +60,28 @@ impl Chord {
     }
 
     pub fn mk_green(self) -> Self {
+        self.mk_red().rotate(5.0 / 24.0)
+    }
+
+    pub fn sat(&self) -> f64 {
+        self.point[1]
+    }
+
+    pub fn mk_saturated(self) -> Self {
+        self.set_sat(self.sat() + 0.14)
+    }
+
+    pub fn mk_bamp(self, seed: u64) -> Self {
+        const AMP: f64 = 0.05;
+
+        let shift = Color::new(
+            noise(seed, 0) * AMP,
+            noise(seed, 1) * AMP,
+            noise(seed, 2) * AMP,
+        );
+
         Self {
-            point: Vector3::new(self.point[0], self.point[1], 0.5),
+            point: self.point + shift,
             ..self
         }
     }
@@ -114,4 +134,15 @@ impl Chord {
             ..self
         }
     }
+}
+
+/// Deterministic hash noise: maps (seed, dimension) to [-1, 1].
+fn noise(seed: u64, dim: u64) -> f64 {
+    let mut z = seed.wrapping_add(dim.wrapping_mul(0x9e3779b97f4a7c15));
+
+    z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+    z ^= z >> 31;
+
+    (z as f64) / (u64::MAX as f64) * 2.0 - 1.0
 }
