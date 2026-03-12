@@ -1,5 +1,7 @@
 use nalgebra::Vector3;
 
+const PUSH_SCALAR: f64 = 7.0 / 8.0;
+
 pub type Color = Vector3<f64>;
 
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -8,6 +10,7 @@ pub struct Chord {
     pub interval: Color,
 }
 
+// One two buckle my shoe
 impl From<Color> for Chord {
     fn from(point: Color) -> Self {
         Self {
@@ -38,11 +41,19 @@ impl Chord {
         self.point[0]
     }
 
+    pub fn shift_lit(&self, nudge: f64) -> Self {
+        self.set_lit(self.lit() + nudge)
+    }
+
     pub fn set_lit(self, target_lit: f64) -> Self {
         Self {
             point: Vector3::new(target_lit, self.point[1], self.point[2]),
             ..self
         }
+    }
+
+    pub fn shift_sat(&self, nudge: f64) -> Self {
+        self.set_sat(self.sat() + nudge)
     }
 
     pub fn set_sat(self, target_sat: f64) -> Self {
@@ -52,16 +63,13 @@ impl Chord {
         }
     }
 
-    pub fn mk_blue(self) -> Self {
-        Self {
-            point: Vector3::new(self.point[0], self.point[1], 0.7),
-            ..self
-        }
+    pub fn candy(self) -> Self {
+        self.set_sat(self.sat() + 0.25)
     }
 
-    pub fn mk_green(self) -> Self {
+    pub fn mk_void(self) -> Self {
         Self {
-            point: Vector3::new(self.point[0], self.point[1], 0.5),
+            point: Vector3::new(0.0, self.point[1], self.point[2]),
             ..self
         }
     }
@@ -73,6 +81,107 @@ impl Chord {
         }
     }
 
+    pub fn mk_orange(self) -> Self {
+        self.mk_red().rotate(3.0 / 24.0)
+    }
+
+    pub fn mk_blue(self) -> Self {
+        self.mk_red().rotate(10.0 / 24.0)
+    }
+
+    pub fn mk_green(self) -> Self {
+        self.mk_red()
+            .rotate(6.0 / 24.0)
+            .set_sat(self.sat() + (self.sat() * 0.20))
+    }
+
+    pub fn mk_yellow(self) -> Self {
+        self.mk_red().rotate(3.0 / 24.0)
+    }
+
+    pub fn sat(&self) -> f64 {
+        self.point[1]
+    }
+
+    pub fn lit(&self) -> f64 {
+        self.point[0]
+    }
+
+    pub fn mk_saturated(self) -> Self {
+        self.set_sat(self.sat() + 0.14)
+    }
+
+    pub fn mk_bamp(self, seed: u64) -> Self {
+        const AMP: f64 = 0.03;
+
+        let shift = Color::new(
+            noise(seed, 0) * AMP,
+            noise(seed, 1) * AMP,
+            noise(seed, 2) * AMP,
+        );
+
+        Self {
+            point: self.point + shift,
+            ..self
+        }
+        .pin_bottom(&self)
+    }
+
+    pub fn shimmer(self) -> Self {
+        self.set_lit(self.lit() + 0.1)
+    }
+
+    pub fn dust(self) -> Self {
+        self.set_lit(self.lit() - 0.01)
+            .set_interval(self.interval * 0.98)
+    }
+
+    pub fn inverted(self) -> Self {
+        Self {
+            point: self.bottom(),
+            interval: -self.interval,
+        }
+    }
+
+    pub fn faintly(self) -> Self {
+        self.mix(&self.mk_red())
+            .set_lit(self.lit() * 0.46)
+            .pin_bottom(&self)
+    }
+
+    pub fn pin_bottom(self, other: &Chord) -> Self {
+        Self {
+            interval: 2.0 * (self.point - other.bottom()),
+            ..self
+        }
+    }
+
+    pub fn push_back(self) -> Self {
+        self.set_lit(self.lit() * PUSH_SCALAR)
+            .set_interval(self.interval / PUSH_SCALAR)
+    }
+
+    pub fn pop_up(self) -> Self {
+        let scalar = 1.0 + (1.0 - PUSH_SCALAR);
+        self.set_lit(self.lit() * scalar)
+            .set_interval(self.interval * scalar)
+    }
+
+    pub fn alt(self, seed: u64) -> Self {
+        self.mix(&self.mk_saturated().mk_green())
+            .mk_bamp(seed)
+            .mk_bamp(seed + 1)
+            .mk_bamp(seed + 2)
+            .pin_bottom(&self)
+    }
+
+    pub fn mix(self, other: &Chord) -> Self {
+        let point = (self.point + other.point) / 2.0;
+        let interval = (self.interval + other.interval) / 2.0;
+
+        Self { point, interval }
+    }
+
     pub fn set_hue(self, target_hue: f64) -> Self {
         Self {
             point: Vector3::new(self.point[0], self.point[1], target_hue),
@@ -80,7 +189,7 @@ impl Chord {
         }
     }
 
-    pub fn set_interval<T: Into<Vector3<f64>>>(self, interval: T) -> Self {
+    pub fn set_interval(self, interval: Vector3<f64>) -> Self {
         Self {
             interval: interval.into(),
             ..self
@@ -114,4 +223,15 @@ impl Chord {
             ..self
         }
     }
+}
+
+/// Deterministic hash noise: maps (seed, dimension) to [-1, 1].
+fn noise(seed: u64, dim: u64) -> f64 {
+    let mut z = seed.wrapping_add(dim.wrapping_mul(0x9e3779b97f4a7c15));
+
+    z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+    z ^= z >> 31;
+
+    (z as f64) / (u64::MAX as f64) * 2.0 - 1.0
 }

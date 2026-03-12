@@ -6,7 +6,7 @@ OKLCH color palette generator. Outputs hex and RGB via `--json` or a terminal pr
 
 Three modules with hard boundaries:
 
-- **Chord** (`src/chord.rs`) — `{point: Color, interval: Color}` where `Color = Vector3<f64>` in `[l, c, h]` unit space (0–1). Derives `Default` (zero vector) and `PartialEq`; `is_default()` tests identity. Point is the centroid; interval is a spread vector. `From<Color>` initializes with default interval `[0.5, 0, 0]`. Three extractors: `top` (point + interval/2), `bottom` (point - interval/2), `middle` (point). Builder `set_interval` overrides the spread. Semantic modifiers shift the point (`active`, `rotate`, `desaturated`, `set_lit/sat/hue`), or collapse the interval (`faint`). Uses `nalgebra::Vector3` for all arithmetic.
+- **Chord** (`src/chord.rs`) — `{point: Color, interval: Color}` where `Color = Vector3<f64>` in `[l, c, h]` unit space (0–1). Derives `Default` (zero vector) and `PartialEq`; `is_default()` tests identity. Point is the centroid; interval is a spread vector. `From<Color>` initializes with default interval `[0.5, 0, 0]`. Three extractors: `top` (point + interval/2), `bottom` (point - interval/2), `middle` (point). Builder `set_interval` overrides the spread. Semantic modifiers shift the point (`active`, `rotate`, `desaturated`, `set_lit/sat/hue`), or collapse the interval (`faint`). `mk_bamp(seed)` applies seeded deterministic noise (splitmix64 hash) to all three point dimensions. Private `noise(seed, dim)` maps `(u64, u64)` to `[-1, 1]`. Uses `nalgebra::Vector3` for all arithmetic.
 
 - **Backends** (`src/backends.rs`) — `ThemeRgb` converts `Color` to sRGB bytes via `palette` crate. `From<Color>` for conversion, `Display` for hex output, `From<ThemeRgb> for anstyle::Color` for terminal styling.
 
@@ -26,4 +26,4 @@ Three modules with hard boundaries:
 
 ## Current Focus
 
-`--filter <regex>` landed for helix output. Wiring `.color()` and `.transform()` calls in `theme()` using palette Chords from `main.rs`.
+Wiring `.color()` and `.transform()` calls in `theme()` using palette Chords from `main.rs`. `mk_bamp` now takes a seed for deterministic per-scope noise.

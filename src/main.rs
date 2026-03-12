@@ -6,22 +6,22 @@ use backends::ThemeRgb;
 use chord::{Chord, Color};
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 fn normal() -> Chord {
-    Chord::from(Color::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03])
+    Chord::from(Color::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
 }
 
 fn palette() -> Vec<(&'static str, Color)> {
     let normal = normal();
     let normal_alt = normal.rotate(1.0 / 12.0);
 
-    let spread = 0.08;
+    let spread = 0.075;
 
     let level_1 = normal
-        .set_lit(normal.get_lit() - (spread * 4.5))
+        .set_lit(normal.get_lit() - (spread * 5.0))
         .set_sat(0.05)
-        .set_interval([spread * 3.0, 0.0, 0.0]);
+        .set_interval([spread * 3.0, 0.0, 0.0].into());
 
     let level_2 = level_1.set_lit(level_1.get_lit() + spread);
     let level_3 = level_2.set_lit(level_2.get_lit() + spread);
@@ -30,7 +30,7 @@ fn palette() -> Vec<(&'static str, Color)> {
         .set_lit(normal.get_lit() - (level_2.get_lit() - level_1.get_lit()))
         .set_sat(0.2)
         .set_hue(0.08)
-        .set_interval([0.17, 0.1, -0.12]);
+        .set_interval([0.17, 0.1, -0.12].into());
     let ansi_yellow = ansi_red.rotate(1.0 / 6.0);
     let ansi_green = ansi_red.rotate(2.0 / 6.0);
     let ansi_cyan = ansi_red.rotate(3.0 / 6.0);
@@ -55,7 +55,11 @@ fn palette() -> Vec<(&'static str, Color)> {
     let literal_alt = literal.rotate(-2.0 / 24.0);
     let tipe = keyword.set_sat(0.04);
 
-    let error = comment.set_sat(0.2).rotate(-1.0 / 12.0);
+    let error = comment
+        .pin_bottom(&normal)
+        .shift_lit(0.005)
+        .set_sat(0.2)
+        .rotate(-1.0 / 12.0);
     let warn = error.rotate(3.0 / 24.0);
     let info = warn.rotate(2.0 / 24.0);
     let hint = info.rotate(3.0 / 24.0);
@@ -90,11 +94,11 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_ANSI_MAGENTA_LIGHT", ansi_magenta.top()),
         //
         ("COLOR_UI_LEVEL_1_BG", level_1.bottom()),
-        ("COLOR_UI_LEVEL_1_FG", level_1.middle()),
+        ("COLOR_UI_LEVEL_1_FG", level_1.top()),
         ("COLOR_UI_LEVEL_2_BG", level_2.bottom()),
-        ("COLOR_UI_LEVEL_2_FG", level_2.middle()),
+        ("COLOR_UI_LEVEL_2_FG", level_2.top()),
         ("COLOR_UI_LEVEL_3_BG", level_3.bottom()),
-        ("COLOR_UI_LEVEL_3_FG", level_3.middle()),
+        ("COLOR_UI_LEVEL_3_FG", level_3.top()),
         //
         ("COLOR_NORMAL_BG", normal.bottom()),
         ("COLOR_NORMAL_FG", normal.middle()),
@@ -171,7 +175,9 @@ fn print_table(palette: &[(&str, Color)]) {
         let rgb = ThemeRgb::from(*color);
         let swatch = base.fg_color(Some(rgb.into()));
 
-        print!("{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK}{base} {rgb}    \n{base:#}");
+        print!(
+            "{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK}{base} {rgb}    \n{base:#}"
+        );
     }
 }
 

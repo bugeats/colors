@@ -1,5 +1,5 @@
-use serde::ser::{SerializeMap, Serializer};
 use serde::Serialize;
+use serde::ser::{SerializeMap, Serializer};
 
 use crate::backends::ThemeRgb;
 use crate::chord::Chord;
@@ -46,11 +46,7 @@ impl Underline {
     }
 
     fn merge(self, child: Self) -> Self {
-        if child.is_none() {
-            self
-        } else {
-            child
-        }
+        if child.is_none() { self } else { child }
     }
 }
 
@@ -78,22 +74,33 @@ pub(super) struct Style {
     pub(super) color: Chord,
     pub(super) underline: Underline,
     pub(super) modifiers: &'static [Modifier],
+    pub(super) mask_fg: bool,
+    pub(super) mask_bg: bool,
 }
 
 impl Style {
     pub(super) fn merge(self, child: Self) -> Self {
+        let color = if child.color.is_default() {
+            self.color
+        } else {
+            child.color
+        };
+
+        let modifiers = if child.modifiers.is_empty() {
+            self.modifiers
+        } else {
+            child.modifiers
+        };
+
+        let mask_bg = if child.mask_bg { true } else { false };
+
         Self {
-            color: if child.color.is_default() {
-                self.color
-            } else {
-                child.color
-            },
+            color,
             underline: self.underline.merge(child.underline),
-            modifiers: if child.modifiers.is_empty() {
-                self.modifiers
-            } else {
-                child.modifiers
-            },
+            modifiers,
+            mask_fg: child.mask_fg,
+            mask_bg,
+            ..Default::default()
         }
     }
 }
@@ -103,12 +110,20 @@ impl Serialize for Style {
         let fg = ThemeRgb::from(self.color.middle()).to_string();
         let bg = ThemeRgb::from(self.color.bottom()).to_string();
 
-        let field_count =
-            2 + (!self.underline.is_none()) as usize + (!self.modifiers.is_empty()) as usize;
+        let field_count = (!self.underline.is_none()) as usize
+            + (!self.modifiers.is_empty()) as usize
+            + self.mask_fg as usize
+            + self.mask_bg as usize;
 
         let mut map = serializer.serialize_map(Some(field_count))?;
-        map.serialize_entry("fg", fg.as_str())?;
-        map.serialize_entry("bg", bg.as_str())?;
+
+        if !self.mask_fg {
+            map.serialize_entry("fg", fg.as_str())?;
+        }
+
+        if !self.mask_bg {
+            map.serialize_entry("bg", bg.as_str())?;
+        }
 
         if !self.underline.is_none() {
             map.serialize_entry("underline", &self.underline)?;
