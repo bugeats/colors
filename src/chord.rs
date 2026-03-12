@@ -79,7 +79,9 @@ impl Chord {
     }
 
     pub fn mk_green(self) -> Self {
-        self.mk_red().rotate(5.0 / 24.0)
+        self.mk_red()
+            .rotate(6.0 / 24.0)
+            .set_sat(self.sat() + (self.sat() * 0.25))
     }
 
     pub fn mk_yellow(self) -> Self {
@@ -116,6 +118,11 @@ impl Chord {
 
     pub fn shimmer(self) -> Self {
         self.set_lit(self.lit() + 0.1)
+    }
+
+    pub fn dust(self) -> Self {
+        self.set_lit(self.lit() - 0.01)
+            .set_interval(self.interval * 0.98)
     }
 
     pub fn inverted(self) -> Self {

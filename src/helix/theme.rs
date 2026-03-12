@@ -5,7 +5,6 @@ use crate::chord::Chord;
 use Modifier::*;
 use UnderlineStyle::*;
 use nalgebra::Vector3;
-use palette::white_point::B;
 
 fn normal() -> Chord {
     Chord::from(Vector3::new(0.80, 0.05, 0.20)).set_interval([1.11, 0.05, -0.03].into())
@@ -13,61 +12,18 @@ fn normal() -> Chord {
 
 fn brown() -> Chord {
     let norm = normal();
-    let intr = norm.interval + Vector3::new(-0.22, 0.09, 0.1);
+    let intr = norm.interval + Vector3::new(-0.45, 0.03, 0.1);
 
     normal()
         .rotate(3.0 / 48.0)
         .set_sat(norm.sat() + 0.08)
-        .set_lit(norm.lit() - 0.09)
+        .set_lit(norm.lit() - 0.18)
         .set_interval(intr)
 }
 
-pub(super) fn theme() -> Node {
-    let markup = node("markup")
-        .child(
-            node("heading")
-                .child(node("marker"))
-                .child(node("1"))
-                .child(node("2"))
-                .child(node("3"))
-                .child(node("4"))
-                .child(node("5"))
-                .child(node("6"))
-                .child(node("completion"))
-                .child(node("hover")),
-        )
-        .child(
-            node("list")
-                .child(node("unnumbered"))
-                .child(node("numbered"))
-                .child(node("checked"))
-                .child(node("unchecked")),
-        )
-        .child(node("bold").modifiers(&[Bold]))
-        .child(node("italic").modifiers(&[Italic]))
-        .child(node("strikethrough").modifiers(&[CrossedOut]))
-        .child(
-            node("link")
-                .child(node("url").modifiers(&[Underlined]))
-                .child(node("label"))
-                .child(node("text")),
-        )
-        .child(node("quote"))
-        .child(
-            node("raw")
-                .child(
-                    node("inline")
-                        .child(node("completion"))
-                        .child(node("hover")),
-                )
-                .child(node("block")),
-        )
-        .child(
-            node("normal")
-                .child(node("completion"))
-                .child(node("hover")),
-        );
+// ----
 
+pub(super) fn theme() -> Node {
     let keyword = node("keyword")
         .transform(|c| c.mk_saturated().mk_green().pin_bottom(c))
         .child(
@@ -90,11 +46,13 @@ pub(super) fn theme() -> Node {
 
     node("")
         .transform(|_| normal())
-        .child(markup)
+        .child(markup())
         .child(node("attribute"))
         .child(node("tabstop"))
         .child(
             node("type")
+                .modifiers(&[Modifier::Bold])
+                .transform(|c| c.dust())
                 .child(node("builtin"))
                 .child(node("parameter"))
                 .child(node("enum").child(node("variant"))),
@@ -185,7 +143,7 @@ pub(super) fn theme() -> Node {
                 })
                 .child(
                     node("plus")
-                        .transform(|c| c.mk_green())
+                        .transform(|c| c.mk_green().pin_bottom(&normal()))
                         .child(node("gutter")),
                 )
                 .child(
@@ -206,8 +164,56 @@ pub(super) fn theme() -> Node {
         )
 }
 
+fn markup() -> Node {
+    node("markup")
+        .child(
+            node("heading")
+                .modifiers(&[Modifier::Bold])
+                .child(node("marker"))
+                .child(node("1"))
+                .child(node("2"))
+                .child(node("3"))
+                .child(node("4"))
+                .child(node("5"))
+                .child(node("6"))
+                .child(node("completion"))
+                .child(node("hover")),
+        )
+        .child(
+            node("list")
+                .child(node("unnumbered"))
+                .child(node("numbered"))
+                .child(node("checked"))
+                .child(node("unchecked")),
+        )
+        .child(node("bold").modifiers(&[Bold]))
+        .child(node("italic").modifiers(&[Italic]))
+        .child(node("strikethrough").modifiers(&[CrossedOut]))
+        .child(
+            node("link")
+                .child(node("url").modifiers(&[Underlined]))
+                .child(node("label"))
+                .child(node("text")),
+        )
+        .child(node("quote"))
+        .child(
+            node("raw")
+                .child(
+                    node("inline")
+                        .child(node("completion"))
+                        .child(node("hover")),
+                )
+                .child(node("block")),
+        )
+        .child(
+            node("normal")
+                .child(node("completion"))
+                .child(node("hover")),
+        )
+}
+
 fn cursor() -> Node {
-    let normal = node("normal");
+    let norm = node("normal");
 
     let insert = node("insert")
         .modifiers(&[Modifier::Reversed])
@@ -217,14 +223,21 @@ fn cursor() -> Node {
 
     node("cursor")
         .transform(|chord| chord.mk_blue().candy().inverted())
-        .child(normal.clone())
+        .child(norm.clone())
         .child(insert.clone())
         .child(select.clone())
-        .child(node("match").transform(|c| c.push_back()))
+        .child(node("match").transform(|c| {
+            c.candy()
+                .mk_red()
+                .pop_up()
+                .pop_up()
+                .pop_up()
+                .pin_bottom(&normal())
+        }))
         .child(
             node("primary")
                 .transform(|c| c.pop_up())
-                .child(normal)
+                .child(norm)
                 .child(insert)
                 .child(select),
         )
@@ -289,15 +302,16 @@ fn ui() -> Node {
                 .child(node("background")),
         )
         .child(node("popup").child(node("info")))
-        .child(node("window"))
+        .child(node("window").transform(|c| c.push_back().push_back().pin_bottom(c)))
         .child(node("help"))
         .child(picker())
         .child(
             node("text")
-                .child(node("focus").transform(|c| c.pop_up().pin_bottom(c)))
-                .child(node("inactive").transform(|c| c.push_back().pin_bottom(c)))
+                .transform(|_| normal())
+                .child(node("focus").transform(|c| c.pin_bottom(&brown()).pop_up()))
+                .child(node("inactive").transform(|c| c.push_back().push_back().pin_bottom(c)))
                 .child(node("info"))
-                .child(node("directory").transform(|c| c.alt(1007)))
+                .child(node("directory").transform(|c| c.push_back().pin_bottom(c)))
                 .child(node("symlink").transform(|c| c.alt(1001))),
         )
         .child(virtualx())
@@ -322,7 +336,7 @@ fn picker() -> Node {
 
 fn virtualx() -> Node {
     node("virtual")
-        .transform(|_| normal())
+        .transform(|_| brown())
         .child(node("ruler"))
         .child(node("whitespace").transform(|c| c.faintly().pin_bottom(&normal())))
         .child(node("indent-guide").transform(|c| c.mk_void().pin_bottom(&normal())))
