@@ -6,21 +6,24 @@ use Modifier::*;
 use UnderlineStyle::*;
 use nalgebra::Vector3;
 
-fn normal() -> Chord {
-    Chord::from(Vector3::new(0.80, 0.05, 0.20)).set_interval([1.11, 0.05, -0.03].into())
+mod palette {
+    use super::*;
+
+    pub fn normal() -> Chord {
+        Chord::from(Vector3::new(0.80, 0.05, 0.20)).set_interval([1.11, 0.05, -0.03].into())
+    }
+
+    pub fn brown() -> Chord {
+        let norm = normal();
+        let intr = norm.interval + Vector3::new(-0.45, 0.03, 0.1);
+
+        normal()
+            .rotate(3.0 / 48.0)
+            .set_sat(norm.sat() + 0.08)
+            .set_lit(norm.lit() - 0.18)
+            .set_interval(intr)
+    }
 }
-
-fn brown() -> Chord {
-    let norm = normal();
-    let intr = norm.interval + Vector3::new(-0.45, 0.03, 0.1);
-
-    normal()
-        .rotate(3.0 / 48.0)
-        .set_sat(norm.sat() + 0.08)
-        .set_lit(norm.lit() - 0.18)
-        .set_interval(intr)
-}
-
 // ----
 
 pub(super) fn theme() -> Node {
@@ -45,7 +48,7 @@ pub(super) fn theme() -> Node {
         );
 
     node("")
-        .transform(|_| normal())
+        .transform(|_| palette::normal())
         .child(markup())
         .child(node("attribute"))
         .child(node("tabstop"))
@@ -100,7 +103,7 @@ pub(super) fn theme() -> Node {
         .child(node("operator"))
         .child(
             node("function")
-                .transform(|c| c.shimmer().pin_bottom(&normal()))
+                .transform(|c| c.shimmer().pin_bottom(&palette::normal()))
                 .child(node("builtin"))
                 .child(node("method").child(node("private")))
                 .child(node("macro"))
@@ -139,11 +142,11 @@ pub(super) fn theme() -> Node {
                         .push_back()
                         .push_back()
                         .push_back()
-                        .pin_bottom(&normal())
+                        .pin_bottom(&palette::normal())
                 })
                 .child(
                     node("plus")
-                        .transform(|c| c.mk_green().pin_bottom(&normal()))
+                        .transform(|c| c.mk_green().pin_bottom(&palette::normal()))
                         .child(node("gutter")),
                 )
                 .child(
@@ -156,7 +159,7 @@ pub(super) fn theme() -> Node {
                         .transform(|c| c.mk_orange())
                         .child(node("moved"))
                         .child(node("conflict").transform(|c| {
-                            let red = normal().candy().mk_red();
+                            let red = palette::normal().candy().mk_red();
                             c.mix(&red.pin_bottom(&red)).push_back().push_back()
                         }))
                         .child(node("gutter")),
@@ -232,7 +235,7 @@ fn cursor() -> Node {
                 .pop_up()
                 .pop_up()
                 .pop_up()
-                .pin_bottom(&normal())
+                .pin_bottom(&palette::normal())
         }))
         .child(
             node("primary")
@@ -245,11 +248,11 @@ fn cursor() -> Node {
 
 fn ui() -> Node {
     node("ui")
-        .transform(|_| brown())
+        .transform(|_| palette::brown())
         .child(
             node("background")
-                .transform(|_| normal())
-                .child(node("separator").transform(|_| brown().pop_up())),
+                .transform(|_| palette::normal())
+                .child(node("separator").transform(|_| palette::brown().pop_up())),
         )
         .child(
             node("cursorline")
@@ -274,7 +277,7 @@ fn ui() -> Node {
         )
         .child(
             node("gutter")
-                .transform(|_| normal().faintly())
+                .transform(|_| palette::normal().faintly())
                 .child(
                     node("selected")
                         .transform(|c| c.pop_up().pin_bottom(c))
@@ -284,7 +287,7 @@ fn ui() -> Node {
         )
         .child(
             node("linenr")
-                .transform(|_| normal().faintly().pin_bottom(&normal()))
+                .transform(|_| palette::normal().faintly().pin_bottom(&palette::normal()))
                 .child(node("selected").transform(|c| c.pop_up().pin_bottom(c))),
         )
         .child(
@@ -307,8 +310,8 @@ fn ui() -> Node {
         .child(picker())
         .child(
             node("text")
-                .transform(|_| normal())
-                .child(node("focus").transform(|c| c.pin_bottom(&brown()).pop_up()))
+                .transform(|_| palette::normal())
+                .child(node("focus").transform(|c| c.pin_bottom(&palette::brown()).pop_up()))
                 .child(node("inactive").transform(|c| c.push_back().push_back().pin_bottom(c)))
                 .child(node("info"))
                 .child(node("directory").transform(|c| c.push_back().pin_bottom(c)))
@@ -336,10 +339,10 @@ fn picker() -> Node {
 
 fn virtualx() -> Node {
     node("virtual")
-        .transform(|_| brown())
+        .transform(|_| palette::brown())
         .child(node("ruler"))
-        .child(node("whitespace").transform(|c| c.faintly().pin_bottom(&normal())))
-        .child(node("indent-guide").transform(|c| c.mk_void().pin_bottom(&normal())))
+        .child(node("whitespace").transform(|c| c.faintly().pin_bottom(&palette::normal())))
+        .child(node("indent-guide").transform(|c| c.mk_void().pin_bottom(&palette::normal())))
         .child(
             node("inlay-hint")
                 .child(node("parameter"))

@@ -81,7 +81,7 @@ impl Chord {
     pub fn mk_green(self) -> Self {
         self.mk_red()
             .rotate(6.0 / 24.0)
-            .set_sat(self.sat() + (self.sat() * 0.25))
+            .set_sat(self.sat() + (self.sat() * 0.20))
     }
 
     pub fn mk_yellow(self) -> Self {
@@ -133,7 +133,7 @@ impl Chord {
     }
 
     pub fn faintly(self) -> Self {
-        self.mix(&self.mk_red().mk_saturated())
+        self.mix(&self.mk_red())
             .set_lit(self.lit() * 0.46)
             .pin_bottom(&self)
     }
