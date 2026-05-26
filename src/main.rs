@@ -19,9 +19,9 @@ fn palette() -> Vec<(&'static str, Color)> {
     let spread = 0.075;
 
     let level_1 = normal
-        .set_lit(normal.get_lit() - (spread * 5.0))
+        .set_lit(normal.inverted().get_lit() + (spread * 1.5))
         .set_sat(0.05)
-        .set_interval([spread * 3.0, 0.0, 0.0].into());
+        .set_interval([spread * 2.25, 0.02, -0.02].into());
 
     let level_2 = level_1.set_lit(level_1.get_lit() + spread);
     let level_3 = level_2.set_lit(level_2.get_lit() + spread);
