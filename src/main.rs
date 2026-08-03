@@ -64,7 +64,8 @@ fn palette() -> Vec<(&'static str, Color)> {
     let info = warn.rotate(2.0 / 24.0);
     let hint = info.rotate(3.0 / 24.0);
 
-    let selection = level_1.rotate(3.0 / 6.0);
+    let cursor = level_1.rotate(3.0 / 6.0);
+    let selection = cursor.set_sat(1.0);
     let selection_alt = selection.rotate(-2.0 / 12.0);
 
     vec![
@@ -117,7 +118,7 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_TYPE_FG", tipe.middle()),
         ("COLOR_SELECTION_BG", selection.bottom()),
         ("COLOR_SELECTION_BG_ALT", selection_alt.bottom()),
-        ("COLOR_CURSOR_BG", selection.top()),
+        ("COLOR_CURSOR_BG", cursor.top()),
         ("COLOR_ERROR_BG", error.bottom()),
         ("COLOR_ERROR_FG", error.middle()),
         ("BG_ERR", error.bottom()),
