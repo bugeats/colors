@@ -13,24 +13,27 @@ fn normal() -> Chord {
 }
 
 fn palette() -> Vec<(&'static str, Color)> {
-    let normal = normal();
-    let normal_alt = normal.rotate(1.0 / 12.0);
+    let norm = normal();
+    let normal_alt = norm.shift_sat(0.01).scale(0.96).rotate(2.0 / 12.0);
 
-    let spread = 0.078;
-
-    let level_3 = normal
+    let level_3 = norm
         .set_sat(0.10)
-        .set_lit(normal.get_lit() - spread * 3.0)
-        .set_interval([spread * 4.0, 0.02, 0.02].into());
+        .set_lit(0.68)
+        .set_hue(norm.hue() - 0.06)
+        .set_interval([0.52, 0.09, 0.0].into());
 
-    let level_2 = level_3.set_lit(level_3.get_lit() - spread);
-    let level_1 = level_2.set_lit(level_2.get_lit() - spread);
+    let level_1 = level_3
+        .set_hue(norm.hue() - 0.01)
+        .shift_sat(-0.02)
+        .set_lit(0.57);
 
-    let ansi_red = normal
-        .set_lit(normal.get_lit() - (level_2.get_lit() - level_1.get_lit()))
-        .set_sat(0.2)
+    let level_2 = level_3.mix(&level_1);
+
+    let ansi_red = norm
+        .set_lit(level_3.get_lit())
+        .set_sat(0.33)
         .set_hue(0.08)
-        .set_interval([0.17, 0.1, -0.12].into());
+        .set_interval([0.22, 0.1, -0.12].into());
 
     let ansi_yellow = ansi_red.rotate(1.0 / 6.0);
     let ansi_green = ansi_red.rotate(2.0 / 6.0);
@@ -38,35 +41,26 @@ fn palette() -> Vec<(&'static str, Color)> {
     let ansi_blue = ansi_red.rotate(4.0 / 6.0);
     let ansi_magenta = ansi_red.rotate(5.0 / 6.0);
     let ansi_white = ansi_red.desaturated();
-    let ansi_black = ansi_yellow.faint().desaturated();
 
-    let punct = normal
-        .set_lit(normal.get_lit() - (spread * 2.0))
-        .set_sat(0.2)
-        .rotate(-3.0 / 24.0);
+    let punct = level_1.set_sat(0.2).rotate(-3.0 / 24.0);
+    let ansi_black = ansi_blue.desaturated().scale(0.25).set_lit(0.33);
 
-    let comment = normal
-        .set_lit(level_2.get_lit())
-        .set_interval(normal.interval * (spread * 4.0));
+    let comment = norm.mix(&level_1);
 
-    let chromatic = normal.set_sat(0.2);
+    let chromatic = norm.set_sat(0.2);
     let keyword = chromatic.rotate(3.0 / 12.0);
     let keyword_alt = keyword.rotate(1.0 / 12.0);
     let literal = chromatic.rotate(2.0 / 24.0);
     let literal_alt = literal.rotate(-2.0 / 24.0);
     let tipe = keyword.set_sat(0.04);
 
-    let error = comment
-        .pin_bottom(&normal)
-        .shift_lit(0.005)
-        .set_sat(0.2)
-        .rotate(-1.0 / 12.0);
+    let error = comment.set_sat(0.34).rotate(-1.0 / 12.0);
 
     let warn = error.rotate(3.0 / 24.0);
     let info = warn.rotate(2.0 / 24.0);
     let hint = info.rotate(3.0 / 24.0);
 
-    let cursor = level_3.set_sat(0.9).rotate(3.0 / 6.0);
+    let cursor = ansi_magenta.rotate(9.0 / 12.0);
     let selection = level_1.rotate(3.0 / 6.0).set_sat(0.4);
     let selection_alt = selection.rotate(-2.0 / 12.0);
 
@@ -97,14 +91,14 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_ANSI_MAGENTA_LIGHT", ansi_magenta.top()),
         //
         ("COLOR_UI_LEVEL_1_BG", level_1.bottom()),
-        ("COLOR_UI_LEVEL_1_FG", level_1.top()),
+        ("COLOR_UI_LEVEL_1_FG", level_1.middle()),
         ("COLOR_UI_LEVEL_2_BG", level_2.bottom()),
-        ("COLOR_UI_LEVEL_2_FG", level_2.top()),
+        ("COLOR_UI_LEVEL_2_FG", level_2.middle()),
         ("COLOR_UI_LEVEL_3_BG", level_3.bottom()),
-        ("COLOR_UI_LEVEL_3_FG", level_3.top()),
+        ("COLOR_UI_LEVEL_3_FG", level_3.middle()),
         //
-        ("COLOR_NORMAL_BG", normal.bottom()),
-        ("COLOR_NORMAL_FG", normal.middle()),
+        ("COLOR_NORMAL_BG", norm.bottom()),
+        ("COLOR_NORMAL_FG", norm.middle()),
         ("COLOR_NORMAL_BG_ALT", normal_alt.bottom()),
         ("COLOR_NORMAL_FG_ALT", normal_alt.middle()),
         ("COLOR_COMMENT_FG", comment.middle()),
@@ -120,7 +114,7 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_TYPE_FG", tipe.middle()),
         ("COLOR_SELECTION_BG", selection.bottom()),
         ("COLOR_SELECTION_BG_ALT", selection_alt.bottom()),
-        ("COLOR_CURSOR_BG", cursor.top()),
+        ("COLOR_CURSOR_BG", cursor.middle()),
         ("COLOR_ERROR_BG", error.bottom()),
         ("COLOR_ERROR_FG", error.middle()),
         ("BG_ERR", error.bottom()),

@@ -25,15 +25,15 @@ impl Chord {
         *self == Self::default()
     }
 
-    pub fn top(self) -> Color {
+    pub fn top(&self) -> Color {
         self.point + self.interval / 2.0
     }
 
-    pub fn bottom(self) -> Color {
+    pub fn bottom(&self) -> Color {
         self.point - self.interval / 2.0
     }
 
-    pub fn middle(self) -> Color {
+    pub fn middle(&self) -> Color {
         self.point
     }
 
@@ -45,10 +45,10 @@ impl Chord {
         self.set_lit(self.lit() + nudge)
     }
 
-    pub fn set_lit(self, target_lit: f64) -> Self {
+    pub fn set_lit(&self, target_lit: f64) -> Self {
         Self {
             point: Vector3::new(target_lit, self.point[1], self.point[2]),
-            ..self
+            ..*self
         }
     }
 
@@ -56,46 +56,46 @@ impl Chord {
         self.set_sat(self.sat() + nudge)
     }
 
-    pub fn set_sat(self, target_sat: f64) -> Self {
+    pub fn set_sat(&self, target_sat: f64) -> Self {
         Self {
             point: Vector3::new(self.point[0], target_sat, self.point[2]),
-            ..self
+            ..*self
         }
     }
 
-    pub fn candy(self) -> Self {
+    pub fn candy(&self) -> Self {
         self.set_sat(self.sat() + 0.25)
     }
 
-    pub fn mk_void(self) -> Self {
+    pub fn mk_void(&self) -> Self {
         Self {
             point: Vector3::new(0.0, self.point[1], self.point[2]),
-            ..self
+            ..*self
         }
     }
 
-    pub fn mk_red(self) -> Self {
+    pub fn mk_red(&self) -> Self {
         Self {
             point: Vector3::new(self.point[0], self.point[1], 0.1),
-            ..self
+            ..*self
         }
     }
 
-    pub fn mk_orange(self) -> Self {
+    pub fn mk_orange(&self) -> Self {
         self.mk_red().rotate(3.0 / 24.0)
     }
 
-    pub fn mk_blue(self) -> Self {
+    pub fn mk_blue(&self) -> Self {
         self.mk_red().rotate(10.0 / 24.0)
     }
 
-    pub fn mk_green(self) -> Self {
+    pub fn mk_green(&self) -> Self {
         self.mk_red()
             .rotate(6.0 / 24.0)
             .set_sat(self.sat() + (self.sat() * 0.20))
     }
 
-    pub fn mk_yellow(self) -> Self {
+    pub fn mk_yellow(&self) -> Self {
         self.mk_red().rotate(3.0 / 24.0)
     }
 
@@ -107,11 +107,15 @@ impl Chord {
         self.point[0]
     }
 
-    pub fn mk_saturated(self) -> Self {
+    pub fn hue(&self) -> f64 {
+        self.point[2]
+    }
+
+    pub fn mk_saturated(&self) -> Self {
         self.set_sat(self.sat() + 0.14)
     }
 
-    pub fn mk_bamp(self, seed: u64) -> Self {
+    pub fn mk_bamp(&self, seed: u64) -> Self {
         const AMP: f64 = 0.03;
 
         let shift = Color::new(
@@ -122,105 +126,113 @@ impl Chord {
 
         Self {
             point: self.point + shift,
-            ..self
+            ..*self
         }
-        .pin_bottom(&self)
+        .pin_bottom(self)
     }
 
-    pub fn shimmer(self) -> Self {
+    pub fn shimmer(&self) -> Self {
         self.set_lit(self.lit() + 0.1)
     }
 
-    pub fn dust(self) -> Self {
+    pub fn dust(&self) -> Self {
         self.set_lit(self.lit() - 0.01)
             .set_interval(self.interval * 0.98)
     }
 
-    pub fn inverted(self) -> Self {
+    pub fn scale(&self, value: f64) -> Self {
+        Self {
+            point: self.point,
+            interval: value * self.interval,
+        }
+    }
+
+    pub fn inverted(&self) -> Self {
         Self {
             point: self.bottom(),
             interval: -self.interval,
         }
     }
 
-    pub fn faintly(self) -> Self {
+    pub fn faintly(&self) -> Self {
         self.mix(&self.mk_red())
             .set_lit(self.lit() * 0.46)
-            .pin_bottom(&self)
+            .pin_bottom(self)
     }
 
-    pub fn pin_bottom(self, other: &Chord) -> Self {
+    pub fn pin_bottom(&self, other: &Chord) -> Self {
         Self {
             interval: 2.0 * (self.point - other.bottom()),
-            ..self
+            ..*self
         }
     }
 
-    pub fn push_back(self) -> Self {
+    pub fn push_back(&self) -> Self {
         self.set_lit(self.lit() * PUSH_SCALAR)
             .set_interval(self.interval / PUSH_SCALAR)
     }
 
-    pub fn pop_up(self) -> Self {
+    pub fn pop_up(&self) -> Self {
         let scalar = 1.0 + (1.0 - PUSH_SCALAR);
         self.set_lit(self.lit() * scalar)
             .set_interval(self.interval * scalar)
     }
 
-    pub fn alt(self, seed: u64) -> Self {
+    pub fn alt(&self, seed: u64) -> Self {
         self.mix(&self.mk_saturated().mk_green())
             .mk_bamp(seed)
             .mk_bamp(seed + 1)
             .mk_bamp(seed + 2)
-            .pin_bottom(&self)
+            .pin_bottom(self)
     }
 
-    pub fn mix(self, other: &Chord) -> Self {
+    pub fn mix(&self, other: &Chord) -> Self {
         let point = (self.point + other.point) / 2.0;
         let interval = (self.interval + other.interval) / 2.0;
 
         Self { point, interval }
     }
 
-    pub fn set_hue(self, target_hue: f64) -> Self {
+    pub fn set_hue(&self, target_hue: f64) -> Self {
         Self {
             point: Vector3::new(self.point[0], self.point[1], target_hue),
-            ..self
+            ..*self
         }
     }
 
-    pub fn set_interval(self, interval: Vector3<f64>) -> Self {
-        Self {
-            interval: interval.into(),
-            ..self
-        }
+    pub fn shift_hue(&self, nudge: f64) -> Self {
+        self.set_hue(self.hue() + nudge)
     }
 
-    pub fn active(self) -> Self {
+    pub fn set_interval(&self, interval: Vector3<f64>) -> Self {
+        Self { interval, ..*self }
+    }
+
+    pub fn active(&self) -> Self {
         Self {
             point: Vector3::new(self.point[0] + 0.12, self.point[1] + 0.2, self.point[2]),
-            ..self
+            ..*self
         }
     }
 
-    pub fn rotate(self, delta: f64) -> Self {
+    pub fn rotate(&self, delta: f64) -> Self {
         Self {
             point: self.point + Vector3::z() * delta,
-            ..self
+            ..*self
         }
     }
 
-    pub fn desaturated(self) -> Self {
+    pub fn desaturated(&self) -> Self {
         Self {
             point: Vector3::new(self.point[0], 0.01, self.point[2]),
-            ..self
+            ..*self
         }
     }
 
-    pub fn faint(self) -> Self {
+    pub fn faint(&self) -> Self {
         Self {
             point: Vector3::new(0.27, self.point[1], self.point[2]),
-            ..self
+            ..*self
         }
     }
 }
