@@ -16,21 +16,22 @@ fn palette() -> Vec<(&'static str, Color)> {
     let normal = normal();
     let normal_alt = normal.rotate(1.0 / 12.0);
 
-    let spread = 0.075;
+    let spread = 0.078;
 
-    let level_1 = normal
-        .set_lit(normal.inverted().get_lit() + (spread * 1.5))
-        .set_sat(0.05)
-        .set_interval([spread * 2.25, 0.02, -0.02].into());
+    let level_3 = normal
+        .set_sat(0.10)
+        .set_lit(normal.get_lit() - spread * 3.0)
+        .set_interval([spread * 4.0, 0.02, 0.02].into());
 
-    let level_2 = level_1.set_lit(level_1.get_lit() + spread);
-    let level_3 = level_2.set_lit(level_2.get_lit() + spread);
+    let level_2 = level_3.set_lit(level_3.get_lit() - spread);
+    let level_1 = level_2.set_lit(level_2.get_lit() - spread);
 
     let ansi_red = normal
         .set_lit(normal.get_lit() - (level_2.get_lit() - level_1.get_lit()))
         .set_sat(0.2)
         .set_hue(0.08)
         .set_interval([0.17, 0.1, -0.12].into());
+
     let ansi_yellow = ansi_red.rotate(1.0 / 6.0);
     let ansi_green = ansi_red.rotate(2.0 / 6.0);
     let ansi_cyan = ansi_red.rotate(3.0 / 6.0);
@@ -60,12 +61,13 @@ fn palette() -> Vec<(&'static str, Color)> {
         .shift_lit(0.005)
         .set_sat(0.2)
         .rotate(-1.0 / 12.0);
+
     let warn = error.rotate(3.0 / 24.0);
     let info = warn.rotate(2.0 / 24.0);
     let hint = info.rotate(3.0 / 24.0);
 
-    let cursor = level_1.rotate(3.0 / 6.0);
-    let selection = cursor.set_sat(1.0);
+    let cursor = level_3.set_sat(0.9).rotate(3.0 / 6.0);
+    let selection = level_1.rotate(3.0 / 6.0).set_sat(0.4);
     let selection_alt = selection.rotate(-2.0 / 12.0);
 
     vec![
