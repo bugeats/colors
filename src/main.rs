@@ -12,15 +12,36 @@ fn normal() -> Chord {
     Chord::from(Color::new(0.79, 0.035, 0.197)).set_interval([1.06, 0.02, -0.03].into())
 }
 
+fn lev3() -> Chord {
+    let norm = normal();
+
+    norm.set_sat(0.10)
+        .set_lit(0.68)
+        .set_hue(norm.hue() - 0.06)
+        .set_interval([0.51, 0.09, 0.0].into())
+}
+
+fn ansi(rot: f64) -> Chord {
+    let ansi_red = normal()
+        .set_lit(lev3().get_lit())
+        .set_sat(0.22)
+        .set_hue(0.08)
+        .set_interval([0.15, 0.08, -0.04].into());
+
+    let base = ansi_red.rotate(rot).set_lit(lev3().get_lit());
+
+    let warm = lev3().set_sat(0.4).set_hue(0.4);
+    let w2 = base.mix(&warm);
+
+    // base.mix(&warm).mix(&base)
+    base.mix(&w2).mix(&base)
+}
+
 fn palette() -> Vec<(&'static str, Color)> {
     let norm = normal();
     let normal_alt = norm.shift_sat(0.01).scale(0.96).rotate(2.0 / 12.0);
 
-    let level_3 = norm
-        .set_sat(0.10)
-        .set_lit(0.68)
-        .set_hue(norm.hue() - 0.06)
-        .set_interval([0.52, 0.09, 0.0].into());
+    let level_3 = lev3();
 
     let level_1 = level_3
         .set_hue(norm.hue() - 0.01)
@@ -29,23 +50,19 @@ fn palette() -> Vec<(&'static str, Color)> {
 
     let level_2 = level_3.mix(&level_1);
 
-    let ansi_red = norm
-        .set_lit(level_3.get_lit())
-        .set_sat(0.33)
-        .set_hue(0.08)
-        .set_interval([0.22, 0.1, -0.12].into());
-
-    let ansi_yellow = ansi_red.rotate(1.0 / 6.0);
-    let ansi_green = ansi_red.rotate(2.0 / 6.0);
-    let ansi_cyan = ansi_red.rotate(3.0 / 6.0);
-    let ansi_blue = ansi_red.rotate(4.0 / 6.0);
-    let ansi_magenta = ansi_red.rotate(5.0 / 6.0);
+    let ansi_red = ansi(0.0);
+    let ansi_yellow = ansi(1.0 / 6.0);
+    let ansi_green = ansi(2.0 / 6.0);
+    let ansi_cyan = ansi(3.0 / 6.0);
+    let ansi_blue = ansi(4.0 / 6.0);
+    let ansi_magenta = ansi(5.0 / 6.0);
     let ansi_white = ansi_red.desaturated();
 
-    let punct = level_1.set_sat(0.2).rotate(-3.0 / 24.0);
+    let punct = level_1.set_sat(0.22).rotate(-3.0 / 24.0);
     let ansi_black = ansi_blue.desaturated().scale(0.25).set_lit(0.33);
 
     let comment = norm.mix(&level_1);
+    let whitespace = comment.set_hue(0.37).set_sat(ansi_red.sat() / 3.0);
 
     let chromatic = norm.set_sat(0.2);
     let keyword = chromatic.rotate(3.0 / 12.0);
@@ -61,7 +78,7 @@ fn palette() -> Vec<(&'static str, Color)> {
     let hint = info.rotate(3.0 / 24.0);
 
     let cursor = ansi_magenta.rotate(9.0 / 12.0);
-    let selection = level_1.rotate(3.0 / 6.0).set_sat(0.4);
+    let selection = level_1.rotate(3.0 / 6.0).set_sat(0.2);
     let selection_alt = selection.rotate(-2.0 / 12.0);
 
     vec![
@@ -102,7 +119,7 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_NORMAL_BG_ALT", normal_alt.bottom()),
         ("COLOR_NORMAL_FG_ALT", normal_alt.middle()),
         ("COLOR_COMMENT_FG", comment.middle()),
-        ("COLOR_VISIBLE_WHITESPACE_FG", comment.bottom()),
+        ("COLOR_VISIBLE_WHITESPACE_FG", whitespace.bottom()),
         ("COLOR_PUNCTUATION_FAINT_BG", punct.bottom()),
         ("COLOR_PUNCTUATION_FG", punct.middle()),
         ("COLOR_PUNCTUATION_ACTIVE_BG", punct.active().bottom()),
@@ -172,9 +189,7 @@ fn print_table(palette: &[(&str, Color)]) {
         let rgb = ThemeRgb::from(*color);
         let swatch = base.fg_color(Some(rgb.into()));
 
-        print!(
-            "{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK}{base} {rgb}    \n{base:#}"
-        );
+        print!("{base}{name:<max_name$}  {swatch}{BLOCK}{BLOCK}{BLOCK}{BLOCK} {rgb}    \n{base:#}");
     }
 }
 
