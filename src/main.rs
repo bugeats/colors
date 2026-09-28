@@ -70,7 +70,7 @@ fn palette() -> Vec<(&'static str, Color)> {
     let ansi_ui_white = ansi_white.mix(&ui_mixer_warm);
     let ansi_ui_black = ansi_black.mix(&ui_mixer_cool);
 
-    let punct = level_1.set_sat(0.22).rotate(-3.0 / 24.0);
+    let punct = level_1.set_sat(0.22).shift_hue(-0.03);
     let comment = norm.mix(&level_1);
     let whitespace = comment.set_hue(0.37).set_sat(ansi_red.sat() / 3.0);
 
