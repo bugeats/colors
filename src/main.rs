@@ -18,13 +18,13 @@ fn lev3() -> Chord {
     norm.set_sat(0.10)
         .set_lit(0.68)
         .set_hue(norm.hue() - 0.06)
-        .set_interval([0.51, 0.09, 0.0].into())
+        .set_interval([0.54, 0.09, 0.0].into())
 }
 
 fn ansi(rot: f64) -> Chord {
     let ansi_red = normal()
         .set_lit(lev3().get_lit())
-        .set_sat(0.22)
+        .set_sat(0.20)
         .set_hue(0.08)
         .set_interval([0.15, 0.08, -0.04].into());
 
@@ -45,17 +45,17 @@ fn palette() -> Vec<(&'static str, Color)> {
 
     let level_1 = level_3
         .set_hue(norm.hue() - 0.1)
-        .shift_sat(-0.038)
-        .set_lit(0.58);
+        .shift_sat(-0.042)
+        .set_lit(0.60);
 
     let level_2 = level_3.mix(&level_1);
 
     let ansi_red = ansi(0.0);
     let ansi_yellow = ansi(1.0 / 6.0);
     let ansi_green = ansi(2.0 / 6.0);
-    let ansi_cyan = ansi(3.0 / 6.0);
+    let ansi_cyan = ansi(3.1 / 6.0);
     let ansi_blue = ansi(4.0 / 6.0);
-    let ansi_magenta = ansi(5.0 / 6.0);
+    let ansi_magenta = ansi(5.4 / 6.0);
     let ansi_white = ansi_red.desaturated();
     let ansi_black = ansi_blue.desaturated().scale(0.25).set_lit(0.33);
 
@@ -72,16 +72,24 @@ fn palette() -> Vec<(&'static str, Color)> {
 
     let punct = level_1.set_sat(0.22).shift_hue(-0.03);
     let comment = norm.mix(&level_1);
-    let whitespace = comment.set_hue(0.37).set_sat(ansi_red.sat() / 3.0);
 
-    let chromatic = norm.set_sat(0.2);
-    let keyword = chromatic.rotate(3.0 / 12.0);
-    let keyword_alt = keyword.rotate(1.0 / 12.0);
-    let literal = chromatic.rotate(2.0 / 24.0);
-    let literal_alt = literal.rotate(-2.0 / 24.0);
-    let tipe = keyword.set_sat(0.04);
+    let whitespace = comment
+        .set_hue(0.37)
+        .set_sat(ansi_red.sat() / 3.0)
+        .scale(0.92);
 
-    let error = comment.set_sat(0.34).rotate(-1.0 / 12.0);
+    let chromatic = norm.set_sat(0.19);
+
+    let chshft = -0.8 / 12.0;
+    let wurds = chromatic.shift_hue(0.28);
+
+    let keyword = wurds.rotate(chshft * 1.0);
+    let keyword_alt = wurds.rotate(chshft * 2.0);
+    let literal = wurds.rotate(chshft * 3.0);
+    let literal_alt = wurds.rotate(chshft * 4.0);
+    let tipe = keyword_alt.mix(&norm);
+
+    let error = comment.set_sat(0.29).rotate(-1.0 / 12.0);
 
     let warn = error.rotate(3.0 / 24.0);
     let info = warn.rotate(2.0 / 24.0);
@@ -92,31 +100,6 @@ fn palette() -> Vec<(&'static str, Color)> {
     let selection_alt = selection.rotate(-2.0 / 12.0);
 
     vec![
-        ("COLOR_ANSI_BLACK_DIM", ansi_black.bottom()),
-        ("COLOR_ANSI_BLACK", ansi_black.middle()),
-        ("COLOR_ANSI_BLACK_LIGHT", ansi_black.top()),
-        ("COLOR_ANSI_WHITE_DIM", ansi_white.bottom()),
-        ("COLOR_ANSI_WHITE", ansi_white.middle()),
-        ("COLOR_ANSI_WHITE_LIGHT", ansi_white.top()),
-        ("COLOR_ANSI_RED_DIM", ansi_red.bottom()),
-        ("COLOR_ANSI_RED", ansi_red.middle()),
-        ("COLOR_ANSI_RED_LIGHT", ansi_red.top()),
-        ("COLOR_ANSI_YELLOW_DIM", ansi_yellow.bottom()),
-        ("COLOR_ANSI_YELLOW", ansi_yellow.middle()),
-        ("COLOR_ANSI_YELLOW_LIGHT", ansi_yellow.top()),
-        ("COLOR_ANSI_GREEN_DIM", ansi_green.bottom()),
-        ("COLOR_ANSI_GREEN", ansi_green.middle()),
-        ("COLOR_ANSI_GREEN_LIGHT", ansi_green.top()),
-        ("COLOR_ANSI_CYAN_DIM", ansi_cyan.bottom()),
-        ("COLOR_ANSI_CYAN", ansi_cyan.middle()),
-        ("COLOR_ANSI_CYAN_LIGHT", ansi_cyan.top()),
-        ("COLOR_ANSI_BLUE_DIM", ansi_blue.bottom()),
-        ("COLOR_ANSI_BLUE", ansi_blue.middle()),
-        ("COLOR_ANSI_BLUE_LIGHT", ansi_blue.top()),
-        ("COLOR_ANSI_MAGENTA_DIM", ansi_magenta.bottom()),
-        ("COLOR_ANSI_MAGENTA", ansi_magenta.middle()),
-        ("COLOR_ANSI_MAGENTA_LIGHT", ansi_magenta.top()),
-        //
         ("COLOR_ANSI_UI_BLACK_DIM", ansi_ui_black.bottom()),
         ("COLOR_ANSI_UI_BLACK", ansi_ui_black.middle()),
         ("COLOR_ANSI_UI_BLACK_LIGHT", ansi_ui_black.top()),
@@ -141,6 +124,31 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_ANSI_UI_MAGENTA_DIM", ansi_ui_magenta.bottom()),
         ("COLOR_ANSI_UI_MAGENTA", ansi_ui_magenta.middle()),
         ("COLOR_ANSI_UI_MAGENTA_LIGHT", ansi_ui_magenta.top()),
+        //
+        ("COLOR_ANSI_BLACK_DIM", ansi_black.bottom()),
+        ("COLOR_ANSI_BLACK", ansi_black.middle()),
+        ("COLOR_ANSI_BLACK_LIGHT", ansi_black.top()),
+        ("COLOR_ANSI_WHITE_DIM", ansi_white.bottom()),
+        ("COLOR_ANSI_WHITE", ansi_white.middle()),
+        ("COLOR_ANSI_WHITE_LIGHT", ansi_white.top()),
+        ("COLOR_ANSI_RED_DIM", ansi_red.bottom()),
+        ("COLOR_ANSI_RED", ansi_red.middle()),
+        ("COLOR_ANSI_RED_LIGHT", ansi_red.top()),
+        ("COLOR_ANSI_YELLOW_DIM", ansi_yellow.bottom()),
+        ("COLOR_ANSI_YELLOW", ansi_yellow.middle()),
+        ("COLOR_ANSI_YELLOW_LIGHT", ansi_yellow.top()),
+        ("COLOR_ANSI_GREEN_DIM", ansi_green.bottom()),
+        ("COLOR_ANSI_GREEN", ansi_green.middle()),
+        ("COLOR_ANSI_GREEN_LIGHT", ansi_green.top()),
+        ("COLOR_ANSI_CYAN_DIM", ansi_cyan.bottom()),
+        ("COLOR_ANSI_CYAN", ansi_cyan.middle()),
+        ("COLOR_ANSI_CYAN_LIGHT", ansi_cyan.top()),
+        ("COLOR_ANSI_BLUE_DIM", ansi_blue.bottom()),
+        ("COLOR_ANSI_BLUE", ansi_blue.middle()),
+        ("COLOR_ANSI_BLUE_LIGHT", ansi_blue.top()),
+        ("COLOR_ANSI_MAGENTA_DIM", ansi_magenta.bottom()),
+        ("COLOR_ANSI_MAGENTA", ansi_magenta.middle()),
+        ("COLOR_ANSI_MAGENTA_LIGHT", ansi_magenta.top()),
         //
         ("COLOR_UI_LEVEL_1_BG", level_1.bottom()),
         ("COLOR_UI_LEVEL_1_FG", level_1.middle()),
