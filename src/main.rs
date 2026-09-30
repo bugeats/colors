@@ -45,7 +45,7 @@ fn palette() -> Vec<(&'static str, Color)> {
     let level_1 = level_3
         .set_hue(norm.hue() - 0.1)
         .shift_sat(-0.042)
-        .set_lit(0.60);
+        .set_lit(0.58);
 
     let level_2 = level_3.mix(&level_1);
 
@@ -57,6 +57,9 @@ fn palette() -> Vec<(&'static str, Color)> {
     let ansi_magenta = ansi(5.4 / 6.0);
     let ansi_white = ansi_red.desaturated();
     let ansi_black = ansi_blue.desaturated().scale(0.25).set_lit(0.33);
+
+    let selection = level_1.rotate(3.0 / 6.0).set_sat(0.2);
+    let selection_alt = selection.rotate(-2.0 / 12.0);
 
     let ui_mixer_warm = level_1.shift_hue(0.15).scale(0.7).shift_sat(-0.12);
     let ui_mixer_cool = ui_mixer_warm.shift_hue(0.4);
@@ -72,10 +75,7 @@ fn palette() -> Vec<(&'static str, Color)> {
     let punct = level_1.set_sat(0.22).shift_hue(-0.03);
     let comment = norm.mix(&level_1).shift_lit(-0.08);
 
-    let whitespace = comment
-        .set_lit(0.74)
-        .set_hue(0.37)
-        .set_sat(ansi_red.sat() / 3.0);
+    let whitespace = selection.set_hue(0.37).set_sat(ansi_red.sat() / 3.0);
 
     let chromatic = norm.set_sat(0.19);
 
@@ -90,15 +90,16 @@ fn palette() -> Vec<(&'static str, Color)> {
     let tipe = norm.shift_lit(-0.03);
     let normal_alt = tipe.shift_hue(0.1);
 
-    let error = comment.set_sat(0.29).rotate(-1.0 / 12.0);
+    let error = level_2
+        .set_sat(0.29)
+        .set_hue(0.1)
+        .pin_bottom(&selection.set_hue(0.12));
 
     let warn = error.rotate(3.0 / 24.0);
     let info = warn.rotate(2.0 / 24.0);
     let hint = info.rotate(3.0 / 24.0);
 
     let cursor = ansi_magenta.rotate(9.0 / 12.0);
-    let selection = level_1.rotate(3.0 / 6.0).set_sat(0.2);
-    let selection_alt = selection.rotate(-2.0 / 12.0);
 
     vec![
         ("COLOR_ANSI_UI_BLACK_DIM", ansi_ui_black.bottom()),
