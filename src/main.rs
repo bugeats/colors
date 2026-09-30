@@ -39,7 +39,6 @@ fn ansi(rot: f64) -> Chord {
 
 fn palette() -> Vec<(&'static str, Color)> {
     let norm = normal();
-    let normal_alt = norm.shift_sat(0.01).scale(0.96).rotate(2.0 / 12.0);
 
     let level_3 = lev3();
 
@@ -71,12 +70,12 @@ fn palette() -> Vec<(&'static str, Color)> {
     let ansi_ui_black = ansi_black.mix(&ui_mixer_cool);
 
     let punct = level_1.set_sat(0.22).shift_hue(-0.03);
-    let comment = norm.mix(&level_1);
+    let comment = norm.mix(&level_1).shift_lit(-0.08);
 
     let whitespace = comment
+        .set_lit(0.74)
         .set_hue(0.37)
-        .set_sat(ansi_red.sat() / 3.0)
-        .scale(0.92);
+        .set_sat(ansi_red.sat() / 3.0);
 
     let chromatic = norm.set_sat(0.19);
 
@@ -87,7 +86,9 @@ fn palette() -> Vec<(&'static str, Color)> {
     let keyword_alt = wurds.rotate(chshft * 2.0);
     let literal = wurds.rotate(chshft * 3.0);
     let literal_alt = wurds.rotate(chshft * 4.0);
-    let tipe = keyword_alt.mix(&norm);
+
+    let tipe = norm.shift_lit(-0.03);
+    let normal_alt = tipe.shift_hue(0.1);
 
     let error = comment.set_sat(0.29).rotate(-1.0 / 12.0);
 
@@ -158,10 +159,11 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_UI_LEVEL_3_FG", level_3.middle()),
         //
         ("COLOR_NORMAL_BG", norm.bottom()),
-        ("COLOR_NORMAL_FG", norm.middle()),
-        ("COLOR_NORMAL_BG_ALT", normal_alt.bottom()),
-        ("COLOR_NORMAL_FG_ALT", normal_alt.middle()),
         ("COLOR_COMMENT_FG", comment.middle()),
+        ("COLOR_NORMAL_FG", norm.middle()),
+        ("COLOR_TYPE_FG", tipe.middle()),
+        ("COLOR_NORMAL_FG_ALT", normal_alt.middle()),
+        ("COLOR_NORMAL_BG_ALT", normal_alt.bottom()),
         ("COLOR_VISIBLE_WHITESPACE_FG", whitespace.bottom()),
         ("COLOR_PUNCTUATION_FAINT_BG", punct.bottom()),
         ("COLOR_PUNCTUATION_FG", punct.middle()),
@@ -171,7 +173,6 @@ fn palette() -> Vec<(&'static str, Color)> {
         ("COLOR_KEYWORD_FG_ALT", keyword_alt.middle()),
         ("COLOR_STRING_FG", literal.middle()),
         ("COLOR_STRING_FG_ALT", literal_alt.middle()),
-        ("COLOR_TYPE_FG", tipe.middle()),
         ("COLOR_SELECTION_BG", selection.bottom()),
         ("COLOR_SELECTION_BG_ALT", selection_alt.bottom()),
         ("COLOR_CURSOR_BG", cursor.middle()),
